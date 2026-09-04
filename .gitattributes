@@ -1,0 +1,19 @@
+# Normalise to LF everywhere, in the working copy as well as the index.
+#
+# This is not a style preference. `scripts/fixtures.mjs` verifies each committed fixture against
+# a recorded sha256, so if git rewrites line endings on checkout the bytes change, every checksum
+# mismatches, and a Windows contributor sees a corrupt-looking corpus on a clean clone. `eol=lf`
+# makes the checkout byte-identical on every platform.
+* text=auto eol=lf
+
+# Fixtures are compared byte for byte. Never let anything touch them.
+*.fixture.html -text
+fixtures/** -text
+
+# Binaries.
+*.png binary
+*.jpg binary
+*.webp binary
+*.gz binary
+*.zip binary
+*.pdf binary
