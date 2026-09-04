@@ -1,0 +1,74 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+     License, v. 2.0. If a copy of the MPL was not distributed with this
+     file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your collection — Stashling</title>
+  <link rel="stylesheet" href="collection.css">
+</head>
+<body>
+<header>
+  <h1>Your collection</h1>
+  <p class="muted" id="summary">Loading…</p>
+</header>
+
+<section class="disclosure">
+  <h2>What this reads, and where it goes</h2>
+  <p>
+    Stashling reads the pages you ask it to, in the tab you already have open, and writes what it
+    finds to this browser profile. <strong>Nothing is uploaded, and there is no account and no
+    server.</strong> Export writes a plain JSONL file to your disk; import reads one back.
+  </p>
+  <p class="muted small">
+    Sites it can currently reach: <span class="mono" id="granted">—</span>.
+    Access is asked for one site at a time, the first time you collect from it, and you can
+    revoke it in your browser's extension settings at any point.
+  </p>
+</section>
+
+<section class="toolbar">
+  <input id="search" type="search" placeholder="Search title, byline, tags…" autocomplete="off">
+  <select id="source"><option value="">every source</option></select>
+  <select id="liveness">
+    <option value="">any liveness</option>
+    <option value="live">live</option>
+    <option value="gone">gone</option>
+    <option value="unknown">unknown</option>
+  </select>
+  <span class="grow"></span>
+  <label class="file">
+    Import…
+    <input id="import" type="file" accept=".jsonl,.json,.html,.htm,text/html,application/x-ndjson" hidden>
+  </label>
+  <button id="export" type="button">Export</button>
+</section>
+
+<section id="facets" class="facets"></section>
+
+<div id="notice" class="notice" hidden></div>
+
+<main>
+  <table id="grid">
+    <thead>
+      <tr>
+        <th>#</th><th>Item</th><th>Source</th><th>Numbers</th><th>State</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <p id="empty" class="muted" hidden>
+    Nothing collected yet. Open a list page a connector understands and press Collect.
+  </p>
+</main>
+
+<footer>
+  <span class="muted small" id="footer-stats"></span>
+  <button id="clear" class="danger" type="button">Delete everything</button>
+</footer>
+
+<script type="module" src="collection.js"></script>
+</body>
+</html>

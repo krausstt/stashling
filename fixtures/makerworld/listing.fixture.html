@@ -1,0 +1,87 @@
+<!doctype html>
+<!--
+  SYNTHETIC fixture. Every model id, slug, title and creator below is invented.
+
+  It reproduces the structural shapes of a MakerWorld listing grid measured on three real saved
+  pages (Likes 6.70 MB / 733 cards, a Collection 1.57 MB / 79 cards, Downloads 1.82 MB / 115
+  cards) without reproducing any of their content — those pages are the collector's own library.
+
+  Reproduced here:
+    - card 1-2  ordinary "likes" cards
+    - card 3    a "downloads" card, proving the list token comes from data-trackid, not the URL
+    - card 4    a NUMERIC from-token, which must normalize to `collection:{id}`
+    - card 5    a duplicate of card 1 lower in the grid: first occurrence wins, so the pinned
+                index survives and the card is not emitted twice
+    - card 6    an AVATAR <img> placed BEFORE the cover image and carrying real alt text. The
+                shipped parser took the first <img alt> in the chunk unanchored, so this card
+                would have been titled "Nadia Okonkwo". The selector ladder must title it
+                from the model anchor instead.
+    - card 7    a skeleton/ad slot with NO data-trackid — skipped, never half-parsed
+    - card 8    a card whose only title source is the cover alt (no anchor title attribute)
+
+  Anchors used are structural only: data-trackid, data-uid, the /models/{id}-{slug} href and
+  img alt. The obfuscated `mw-css-*` class names present on the real pages are reproduced here
+  precisely so a test can prove nothing depends on them.
+-->
+<html lang="en"><head><meta charset="utf-8"><title>Likes - MakerWorld</title></head>
+<body>
+<div class="mw-css-grid-9f2a">
+
+  <div class="js-design-card mw-css-card-11ab" data-trackid="9000001_from_likes_index_0" data-uid="510000001">
+    <a class="mw-css-cover-3c7d" href="https://makerworld.com/en/models/9000001-hex-bit-caddy" title="Hex Bit Caddy">
+      <img class="mw-css-img-77aa" src="https://makerworld.bblmw.com/cover/9000001.webp" alt="Hex Bit Caddy">
+    </a>
+    <img class="mw-css-avatar-2b9e avatar" src="https://makerworld.bblmw.com/u/510000001.webp" alt="">
+    <a class="mw-css-author-5d10" href="https://makerworld.com/en/@fern_makes">Fern Makes</a>
+  </div>
+
+  <div class="js-design-card mw-css-card-11ab" data-trackid="9000002_from_likes_index_1" data-uid="510000002">
+    <a class="mw-css-cover-3c7d" href="https://makerworld.com/en/models/9000002-parametric-drawer-divider" title="Parametric Drawer Divider">
+      <img class="mw-css-img-77aa" src="https://makerworld.bblmw.com/cover/9000002.webp" alt="Parametric Drawer Divider">
+    </a>
+    <img class="mw-css-avatar-2b9e avatar" src="https://makerworld.bblmw.com/u/510000002.webp" alt="">
+  </div>
+
+  <div class="js-design-card mw-css-card-11ab" data-trackid="9000003_from_downloads_index_0" data-uid="510000003">
+    <a class="mw-css-cover-3c7d" href="https://makerworld.com/en/models/9000003-desk-cable-comb" title="Desk Cable Comb">
+      <img class="mw-css-img-77aa" src="https://makerworld.bblmw.com/cover/9000003.webp" alt="Desk Cable Comb">
+    </a>
+  </div>
+
+  <!-- numeric from-token: a user collection, which must become `collection:10129261` -->
+  <div class="js-design-card mw-css-card-11ab" data-trackid="9000004_from_10129261_index_2" data-uid="510000004">
+    <a class="mw-css-cover-3c7d" href="https://makerworld.com/en/models/9000004-toothbrush-head-stand" title="Toothbrush Head Stand">
+      <img class="mw-css-img-77aa" src="https://makerworld.bblmw.com/cover/9000004.webp" alt="Toothbrush Head Stand">
+    </a>
+  </div>
+
+  <!-- the same model again, further down the grid. First occurrence wins. -->
+  <div class="js-design-card mw-css-card-11ab" data-trackid="9000001_from_likes_index_47" data-uid="510000001">
+    <a class="mw-css-cover-3c7d" href="https://makerworld.com/en/models/9000001-hex-bit-caddy" title="Hex Bit Caddy">
+      <img class="mw-css-img-77aa" src="https://makerworld.bblmw.com/cover/9000001.webp" alt="Hex Bit Caddy">
+    </a>
+  </div>
+
+  <!-- THE TIME BOMB: avatar first, with real alt text. An unanchored "first img alt" wins
+       "Nadia Okonkwo" here and poisons the title with a creator name, silently. -->
+  <div class="js-design-card mw-css-card-11ab" data-trackid="9000005_from_likes_index_3" data-uid="510000005">
+    <img class="mw-css-avatar-2b9e avatar" src="https://makerworld.bblmw.com/u/510000005.webp" alt="Nadia Okonkwo">
+    <a class="mw-css-cover-3c7d" href="https://makerworld.com/en/models/9000005-spool-hub-adapter" title="Spool Hub Adapter">
+      <img class="mw-css-img-77aa" src="https://makerworld.bblmw.com/cover/9000005.webp" alt="Spool Hub Adapter">
+    </a>
+  </div>
+
+  <!-- a skeleton / ad slot: no data-trackid, so it is skipped entirely -->
+  <div class="js-design-card mw-css-card-11ab mw-css-skeleton-0f31">
+    <div class="mw-css-shimmer-8c22"></div>
+  </div>
+
+  <!-- no title attribute on the anchor: the cover alt is the only title source -->
+  <div class="js-design-card mw-css-card-11ab" data-trackid="9000006_from_likes_index_4" data-uid="510000006">
+    <a class="mw-css-cover-3c7d" href="https://makerworld.com/en/models/9000006-filament-clip">
+      <img class="mw-css-img-77aa" src="https://makerworld.bblmw.com/cover/9000006.webp" alt="Filament Clip">
+    </a>
+  </div>
+
+</div>
+</body></html>

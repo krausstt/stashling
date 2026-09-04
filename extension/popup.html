@@ -1,0 +1,68 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+     License, v. 2.0. If a copy of the MPL was not distributed with this
+     file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Stashling</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <h1>Stashling</h1>
+    <button id="open-collection" class="link" type="button">Your collection &rsaquo;</button>
+  </header>
+
+  <section id="tab-state" class="card" hidden>
+    <div class="row">
+      <span class="badge" id="connector-id"></span>
+      <span class="muted" id="list-label"></span>
+    </div>
+    <p class="what" id="what"></p>
+  </section>
+
+  <section id="needs-permission" class="card warn" hidden>
+    <h2>This site is not connected yet</h2>
+    <p>
+      Stashling asks for access to one site at a time, when you first collect from it &mdash; never
+      at install. Nothing is read until you allow it.
+    </p>
+    <p class="mono" id="origins"></p>
+    <button id="grant" class="primary" type="button">Allow this site</button>
+    <p class="muted small">
+      A reload does not grant it. If you have allowed this before and it is asking again, the
+      permission was revoked.
+    </p>
+  </section>
+
+  <section id="unsupported" class="card" hidden>
+    <h2>No connector for this page</h2>
+    <p class="muted">Open one of the list pages a bundled connector understands.</p>
+    <ul id="supported-list" class="muted small"></ul>
+  </section>
+
+  <section id="ready" hidden>
+    <button id="collect" class="primary big" type="button">Collect this list</button>
+    <p class="muted small" id="scroll-note"></p>
+  </section>
+
+  <section id="progress" class="card" hidden>
+    <div class="row"><strong id="phase"></strong><span class="muted" id="counts"></span></div>
+    <div class="bar"><div class="fill" id="fill"></div></div>
+    <p class="muted small" id="note"></p>
+  </section>
+
+  <section id="result" class="card" hidden>
+    <p id="result-text"></p>
+    <p class="muted small" id="result-warning"></p>
+  </section>
+
+  <footer>
+    <span class="muted small" id="stats"></span>
+    <button id="export" class="link" type="button">Export</button>
+  </footer>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

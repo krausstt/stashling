@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "source": "makerworld",
+  "note": "Committed fixtures are SYNTHETIC. The real saved pages are the collector's own likes, collection and downloads and are local-only. See README.md in this directory.",
+  "files": [
+    {
+      "path": "listing.fixture.html",
+      "role": "committed",
+      "bytes": 5298,
+      "sha256": "2534d4e523fb01d60c8793ecb37d2b239d0168b1a874c6556161888d80e2d0c2",
+      "describes": "8 js-design-card chunks yielding 6 cards: ordinary likes cards, a downloads card, a numeric from-token that must become collection:{id}, a duplicate that must not be emitted twice, a skeleton with no data-trackid, an avatar carrying real alt text placed BEFORE the cover (the title time bomb), and a card whose only title source is the cover alt. Obfuscated mw-css-* classes are reproduced so a test can prove nothing depends on them.",
+      "regenerate": "Hand-authored. Edit directly."
+    },
+    {
+      "path": "detail.fixture.html",
+      "role": "committed",
+      "bytes": 3876,
+      "sha256": "abc81682a5b5c7e575a03218665b9842ac6eae8b1c44db26a508d107c67e47b7",
+      "describes": "A __NEXT_DATA__ payload resolved through the KNOWN PATH props.pageProps.design. Encodes: prediction in SECONDS, one rated and one unrated profile (rating null, never 0), differing needAms so printableWithoutAms is true, A1 mini declared via both compatibility.devProductName and otherCompatibility[], categories mixing an object and a string, the load-bearing productProperyList misspelling, and a for-you card summary with no instances array that the discriminator must refuse.",
+      "regenerate": "Hand-authored. Edit directly."
+    },
+    {
+      "path": "detail-moved.fixture.html",
+      "role": "committed",
+      "bytes": 2612,
+      "sha256": "af8010b7603fde1b1cd759ba7587f194b5a5d95107dc226629bb3f17b7b17e44",
+      "describes": "The site-re-templated case: props.pageProps.design is absent and the design has moved into a query cache, so the discriminated deep walk must find it and parseDetail().via must report 'deep-walk'. Carries two decoys the walk must refuse — one with no instances, one where instances is an object rather than an array.",
+      "regenerate": "Hand-authored. Edit directly."
+    },
+    {
+      "path": "_local/likes.html",
+      "role": "local-only",
+      "bytes": 6695802,
+      "sha256": null,
+      "describes": "A real saved Likes page: 733 cards, all unique, list token 'likes'.",
+      "regenerate": "Save your own MakerWorld Likes page while logged in into fixtures/makerworld/_local/. NEVER commit it."
+    },
+    {
+      "path": "_local/collection.html",
+      "role": "local-only",
+      "bytes": 1573799,
+      "sha256": null,
+      "describes": "A real saved Collection page: 79 cards, list token 'collection:10129261' — the numeric from-token case.",
+      "regenerate": "Save your own MakerWorld Collection page while logged in into fixtures/makerworld/_local/. NEVER commit it."
+    },
+    {
+      "path": "_local/downloads.html",
+      "role": "local-only",
+      "bytes": 1822471,
+      "sha256": null,
+      "describes": "A real saved Downloads page: 115 cards, list token 'downloads'.",
+      "regenerate": "Save your own MakerWorld Downloads page while logged in into fixtures/makerworld/_local/. NEVER commit it."
+    },
+    {
+      "path": "_local/detail.html",
+      "role": "local-only",
+      "bytes": 1540000,
+      "sha256": null,
+      "describes": "A real saved model detail page, resolved through the known path, 53 KB of design payload inside 1.5 MB of HTML.",
+      "regenerate": "Save any MakerWorld model page into fixtures/makerworld/_local/. NEVER commit it."
+    }
+  ]
+}

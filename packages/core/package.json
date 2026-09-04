@@ -1,0 +1,23 @@
+{
+  "name": "@stashling/core",
+  "version": "0.1.0",
+  "description": "The Item contract, URL canonicalization, zone merge and source precedence. Pure: no network, no DOM, no dependencies.",
+  "license": "MPL-2.0",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./item": "./src/item.js",
+    "./url": "./src/url.js",
+    "./merge": "./src/merge.js",
+    "./precedence": "./src/precedence.js",
+    "./interchange": "./src/interchange.js",
+    "./facets": "./src/facets.js",
+    "./connector": "./src/connector.js",
+    "./schema/item.schema.json": "./src/schema/item.schema.json"
+  },
+  "files": ["src"],
+  "sideEffects": false,
+  "engines": { "node": ">=20.6.0" },
+  "scripts": { "test": "node --test test/*.test.js" }
+}

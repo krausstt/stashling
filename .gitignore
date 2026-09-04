@@ -1,0 +1,24 @@
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
+coverage/
+.nyc_output/
+
+# Fixtures: real saved pages OUT, synthetic fixtures IN.
+#
+# Two independent reasons, and the second is the one that actually matters:
+#  1. Size. A MakerWorld likes page is 6.7 MB and a YouTube Watch Later page is 12.7 MB. Git is
+#     the wrong place for those.
+#  2. PRIVACY. A real saved page is the collector's own viewing, shopping or reading history.
+#     It must never enter a public repository, at any size.
+#
+# So `*.fixture.html` — hand-authored, invented ids and names, reproducing only the STRUCTURAL
+# shapes measured on a real page — is committed and reviewable. Everything else is not.
+# `fixtures/*/MANIFEST.json` records each file's sha256 and byte size; `npm run fixtures`
+# verifies what is on disk and reports local-only pages as skipped rather than failing.
+# See docs/FIXTURES.md.
+fixtures/**/*.html
+fixtures/**/*.html.gz
+!fixtures/**/*.fixture.html
+fixtures/**/_local/

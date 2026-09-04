@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "generator": "scripts/sync-extension.mjs",
+  "note": "Generated. Do not edit by hand — run `npm run sync`. `commit` and `generatedAt` are provenance only and are excluded from `--check`.",
+  "commit": null,
+  "generatedAt": "2026-09-04T01:00:26.344Z",
+  "files": [
+    {
+      "vendor": "connectors/_shared/html.js",
+      "from": "packages/connectors/src/_shared/html.js",
+      "bytes": 8693,
+      "sha256": "0c6a7df5234708e6c09eaccdd01eede5a063ca7597b8d7f54b36416d8833871e",
+      "rewritten": false
+    },
+    {
+      "vendor": "connectors/index.js",
+      "from": "packages/connectors/src/index.js",
+      "bytes": 3188,
+      "sha256": "3c341853eee5177bc94ed5a7e4b4fb605936b5d3a3ff78a5b0d1c7eb6ba401d4",
+      "rewritten": false
+    },
+    {
+      "vendor": "connectors/makerworld.js",
+      "from": "packages/connectors/src/makerworld.js",
+      "bytes": 31741,
+      "sha256": "e7233500a2ae749661b7d9bdf71076a66b52397fe2cdfe04cb581b7027733667",
+      "rewritten": true
+    },
+    {
+      "vendor": "connectors/youtube.js",
+      "from": "packages/connectors/src/youtube.js",
+      "bytes": 28558,
+      "sha256": "c8a9a5c44ec1b7faa37759a9d6644c5475be1ecc465571c5e47b9ffe92a86e4e",
+      "rewritten": true
+    },
+    {
+      "vendor": "core/connector.js",
+      "from": "packages/core/src/connector.js",
+      "bytes": 6524,
+      "sha256": "beebd1fea90c76e36a4c3b74a20416c4706642d82a72ca138dc29dbb9f7d708a",
+      "rewritten": false
+    },
+    {
+      "vendor": "core/facets.js",
+      "from": "packages/core/src/facets.js",
+      "bytes": 6135,
+      "sha256": "5c59c93d249eb2bd161bf5e75e873de2feaec96f09009ac5ca50038d5bdff3fa",
+      "rewritten": false
+    },
+    {
+      "vendor": "core/index.js",
+      "from": "packages/core/src/index.js",
+      "bytes": 1549,
+      "sha256": "86f1a820895c1842686b2f8e49b67d036d9b50e8f754c06a267891d3a217e46e",
+      "rewritten": false
+    },
+    {
+      "vendor": "core/interchange.js",
+      "from": "packages/core/src/interchange.js",
+      "bytes": 7299,
+      "sha256": "ff928d2b4a3e78765bb2706920431056e2f31b463e06c645c69b119bc00611b6",
+      "rewritten": false
+    },
+    {
+      "vendor": "core/item.js",
+      "from": "packages/core/src/item.js",
+      "bytes": 10252,
+      "sha256": "f8785ac6e2fd154d20a58eade9458425972fa68da52fdd1bef65015dff3c30a6",
+      "rewritten": false
+    },
+    {
+      "vendor": "core/merge.js",
+      "from": "packages/core/src/merge.js",
+      "bytes": 7286,
+      "sha256": "7fdeae54c0d978ba4a975e57d55890b6ca34c95316a21dffae4b87c927d2929b",
+      "rewritten": false
+    },
+    {
+      "vendor": "core/precedence.js",
+      "from": "packages/core/src/precedence.js",
+      "bytes": 6089,
+      "sha256": "0189448e4d9f7c5559f79ad48c6a7b8f7619779c16a4ad65d204f761bac85dc5",
+      "rewritten": false
+    },
+    {
+      "vendor": "core/schema/item.schema.json",
+      "from": "packages/core/src/schema/item.schema.json",
+      "bytes": 6858,
+      "sha256": "9a65a343050613bf41a07f4e599acca2ff449fca8d2f120fd743de1398fc5b8c",
+      "rewritten": false
+    },
+    {
+      "vendor": "core/url.js",
+      "from": "packages/core/src/url.js",
+      "bytes": 9904,
+      "sha256": "ced62b04968d6c7245d6f83620fc689c120533855968205f779d6454b050e5d3",
+      "rewritten": false
+    }
+  ]
+}

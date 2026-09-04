@@ -1,0 +1,28 @@
+<!doctype html>
+<!--
+  SYNTHETIC fixture. Model 9000001 is invented; so are the creator, the profiles and the BOM.
+
+  Reproduces a MakerWorld detail page's __NEXT_DATA__ payload as measured on one real saved
+  detail page (1.54 MB), resolved through the KNOWN PATH `props.pageProps.design`.
+
+  Deliberately encoded here:
+    - `prediction` is SECONDS (49536 -> 13.76 h). Reading it as minutes yields a plausible
+      826-hour print that nothing downstream can detect.
+    - one profile is rated (ratingCount 2) and one is UNRATED (ratingCount 0), so `rating`
+      must be null rather than 0 — "nobody rated it" is not "everybody hated it".
+    - two profiles with different `needAms`, so `printableWithoutAms` is true via the draft one.
+    - `extention` is MakerWorld's spelling, not our typo.
+    - `productProperyList` is MakerWorld's own misspelling of "Property" and is LOAD-BEARING:
+      correcting it returns zero colours for every model, silently.
+    - A1 mini compatibility appears once via `compatibility.devProductName` and once via
+      `otherCompatibility[]`, because both spellings occur in real payloads.
+    - `categories` mixes an object and a plain string, as some templates do.
+    - `props.pageProps` ALSO carries a for-you card summary with id/title/likeCount but NO
+      `instances` — the discriminator must refuse it, or it becomes a record with every
+      counter populated and no print profiles at all.
+-->
+<html lang="en"><head><meta charset="utf-8"><title>Hex Bit Caddy - MakerWorld</title></head>
+<body>
+<div id="__next"><main class="mw-css-detail-4a91"><h1>Hex Bit Caddy</h1></main></div>
+<script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"recommendCards":[{"id":9100001,"title":"A For-You Card That Is Not A Design","likeCount":42,"downloadCount":7}],"design":{"id":9000001,"title":"Hex Bit Caddy","slug":"hex-bit-caddy","summary":"<p>A caddy for <b>hex bits</b>.</p>","coverUrl":"https://makerworld.bblmw.com/cover/9000001.webp","createTime":"2026-02-14T09:12:00Z","updateTime":"2026-05-02T17:40:00Z","license":"CC BY-NC 4.0","likeCount":1919,"downloadCount":3958,"printCount":742,"collectionCount":3866,"commentCount":110,"boostInfo":{"total":86},"cyberBrickNeeded":false,"tags":["tools","organizer","hex","workshop"],"categories":[{"id":31,"name":"Tool Organizers"},"Hobby & DIY"],"designCreator":{"uid":510000001,"name":"Fern Makes","handle":"fern_makes"},"designExtension":{"model_files":[{"name":"caddy_body.3mf"},{"name":"caddy_lid.3mf"},{"name":"insert.stl"}],"boms_of_filaments_v2":[{"spuName":"Bambu PLA Basic","handle":"pla-basic","sku":"PLA-BAS-001","productProperyList":[{"key":"Color","values":[{"value":"Black"},{"value":"Matte Ivory"}]},{"key":"Diameter","values":[{"value":"1.75mm"}]}]},{"spuName":"Bambu TPU 95A","handle":"tpu-95a","sku":"TPU-95A-014","productProperyList":[{"key":"Color","values":[{"value":"Clear"}]}]}]},"instances":[{"profileId":583136903,"title":"0.2mm layer, 2 walls, 15% infill","ratingCount":2,"ratingScoreTotal":10,"prediction":49536,"needAms":false,"downloadCount":1047,"printCount":81,"instanceFilaments":[{"type":"PLA","color":"#000000","usedG":275,"usedM":90.26},{"type":"TPU","color":"#FFFFFF","usedG":13,"usedM":4.35}],"extention":{"modelInfo":{"plates":[{"id":1},{"id":2},{"id":3},{"id":4},{"id":5},{"id":6}],"compatibility":{"devProductName":"A1 mini"},"otherCompatibility":[{"devProductName":"P1S"}]}}},{"profileId":583136904,"title":"Fast draft","ratingCount":0,"ratingScoreTotal":0,"prediction":10800,"needAms":true,"downloadCount":12,"printCount":3,"instanceFilaments":[{"type":"PLA","color":"#FF0000","usedG":90,"usedM":29.5}],"extention":{"modelInfo":{"plates":[{"id":1},{"id":2}],"compatibility":{"devProductName":"P1S"},"otherCompatibility":[{"devProductName":"A1 mini"}]}}}]}}},"page":"/models/[id]","buildId":"fixture-build"}</script>
+</body></html>

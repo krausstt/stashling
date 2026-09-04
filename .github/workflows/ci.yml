@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 20.6.0 is the floor the packages declare in "engines". Testing it is what stops that
+        # claim from quietly becoming false; 22.x is what people actually run.
+        node: ['20.x', '22.x']
+    name: node ${{ matrix.node }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # There is deliberately no `npm install` anywhere in this workflow, and no cache step,
+      # because there is nothing to install. Zero runtime AND zero dev dependencies is a
+      # property of this repo worth protecting, and a green CI that never installs anything is
+      # the proof: a dependency added by accident makes this job fail rather than pass slower.
+      - name: Node version
+        run: node --version
+
+      - name: Tests
+        run: node --test
+
+      - name: Vendored extension code matches packages/
+        run: node scripts/sync-extension.mjs --check
+
+      - name: Extension manifest, imports and permissions
+        run: node scripts/check-extension.mjs
+
+      - name: Fixture corpus checksums
+        run: node scripts/fixtures.mjs
+
+      - name: Syntax check everything the test runner does not import
+        run: |
+          set -e
+          find extension scripts packages -name '*.js' -o -name '*.mjs' \
+            | grep -v node_modules \
+            | xargs -n1 node --check
+          echo "all files parse"
+
+      - name: CLI smoke test
+        run: |
+          set -e
+          node packages/cli/bin/stashling.js --version
+          node packages/cli/bin/stashling.js connectors
+          node packages/cli/bin/stashling.js parse fixtures/youtube/watch-later.fixture.html \
+            --url 'https://www.youtube.com/playlist?list=WL' --now 1756900000000 --jsonl /tmp/yt.jsonl
+          node packages/cli/bin/stashling.js verify /tmp/yt.jsonl
+          node packages/cli/bin/stashling.js import /tmp/yt.jsonl --into /tmp/store.jsonl
+          node packages/cli/bin/stashling.js export /tmp/store.jsonl --out /tmp/round.jsonl
+          node packages/cli/bin/stashling.js verify /tmp/round.jsonl

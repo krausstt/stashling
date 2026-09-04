@@ -1,0 +1,22 @@
+<!doctype html>
+<!--
+  SYNTHETIC fixture — the "site re-templated overnight" case.
+
+  `props.pageProps.design` is ABSENT here. The design payload has moved to
+  `props.pageProps.dehydratedState.queries[1].state.data.model`, which is what a migration to a
+  query-cache-hydrated page looks like. The discriminated deep walk must find it anyway, and
+  `parseDetail().via` must report `deep-walk` — the earliest possible warning that the template
+  changed, which costs one comparison.
+
+  The walk must ALSO refuse the two decoys that sit before it in key order:
+    - `recommendCards[0]`  has id + title + likeCount but NO `instances`
+    - `queries[0]…profile` has id + title but `instances` is an OBJECT, not an array
+  Both would otherwise be accepted as a full design and produce a record with counters and no
+  print profiles — a plausible-looking record that is wrong. `Array.isArray(instances)` is the
+  discriminator, and it is load-bearing rather than defensive.
+-->
+<html lang="en"><head><meta charset="utf-8"><title>Spool Hub Adapter - MakerWorld</title></head>
+<body>
+<div id="__next"><main class="mw-css-detail-4a91"><h1>Spool Hub Adapter</h1></main></div>
+<script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"recommendCards":[{"id":9100002,"title":"Decoy: a for-you card with no instances","likeCount":11}],"dehydratedState":{"queries":[{"state":{"data":{"profile":{"id":9100003,"title":"Decoy: instances is an object, not an array","instances":{"0":{"profileId":1}}}}}},{"state":{"data":{"model":{"id":9000005,"title":"Spool Hub Adapter","slug":"spool-hub-adapter","summary":"Adapter for wide spools.","coverUrl":"https://makerworld.bblmw.com/cover/9000005.webp","createTime":"2026-06-01T08:00:00Z","updateTime":"2026-06-09T08:00:00Z","license":"CC BY 4.0","likeCount":204,"downloadCount":611,"printCount":88,"collectionCount":140,"commentCount":9,"boostInfo":{"total":4},"cyberBrickNeeded":false,"tags":["3d-printing","spool"],"categories":["Printer Accessories"],"designCreator":{"uid":510000005,"name":"Nadia Okonkwo","handle":"nadia_prints"},"designExtension":{"model_files":[{"name":"hub.3mf"}],"boms_of_filaments_v2":[]},"instances":[{"profileId":700000001,"title":"Standard","ratingCount":0,"ratingScoreTotal":0,"prediction":5400,"needAms":false,"downloadCount":20,"printCount":5,"instanceFilaments":[{"type":"PETG","color":"#2233AA","usedG":42,"usedM":13.1}],"extention":{"modelInfo":{"plates":[{"id":1}],"compatibility":{"devProductName":"P1S"},"otherCompatibility":[]}}}]}}}}]}}},"page":"/models/[id]","buildId":"fixture-build-moved"}</script>
+</body></html>

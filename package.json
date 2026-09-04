@@ -1,0 +1,24 @@
+{
+  "name": "stashling",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Keep what you find, like and collect — portable, survivable, pipeable into your own stack.",
+  "license": "MPL-2.0",
+  "engines": { "node": ">=20.6.0" },
+  "workspaces": [
+    "packages/core",
+    "packages/connectors",
+    "packages/cli"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "test:coverage": "node --experimental-test-coverage --test",
+    "fixtures": "node scripts/fixtures.mjs",
+    "sync": "node scripts/sync-extension.mjs",
+    "sync:check": "node scripts/sync-extension.mjs --check",
+    "check": "npm run sync:check && npm test"
+  },
+  "repository": { "type": "git", "url": "https://github.com/krausstt/stashling.git" },
+  "keywords": ["data-portability", "data-sovereignty", "browser-extension", "manifest-v3", "scraper", "collector", "local-first"]
+}

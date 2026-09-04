@@ -1,0 +1,465 @@
+<!doctype html>
+<!--
+  SYNTHETIC fixture. Every video id, title and channel name below is invented.
+
+  It reproduces the STRUCTURAL SHAPES measured on one real saved Watch Later page
+  (12,725,371 bytes, 582 rows) without reproducing any of its content, because a real saved
+  page is the collector's personal viewing history and has no business in a public repo.
+  See fixtures/youtube/README.md for the measurements this file encodes.
+
+  What is deliberately reproduced here:
+    - rows 1-4   the ordinary case, spanning all three view-count shapes ("#K views" 396/582,
+                 "#M views" 181/582, "# views" 5/582) and both duration shapes (M:SS, H:MM:SS)
+    - row 5      a /channel/UC... byline instead of /@handle (1 of 582 rows was this)
+    - row 6      an href-LESS byline anchor: name present, url absent (19 of 582 = 3.26%)
+    - row 7      an is-empty="" byline: neither name nor url (3 of 582 = 0.52%, a strict
+                 subset of the 19). NEITHER row is a deleted video.
+    - rows 8-9   [Private video] / [Deleted video] placeholders. The real capture contains
+                 ZERO of these, so this is the one path covered ONLY synthetically.
+    - rows 10-12 index values 11, 12, 12 — the real page skips ordinals and repeats them
+                 (400 and 415 absent; 499 and 500 twice). `order` is a hint, not a sequence.
+    - every row  carries the hidden, always-empty #attributed-channel-name (the 0% trap) and
+                 a SECOND element with id="text" inside the thumbnail overlay, which is why
+                 the channel lookup must be scoped to <ytd-channel-name> first.
+    - the tail   decoy watch?v= anchors OUTSIDE any row element, mirroring the 57 non-playlist
+                 ids that leak into a page-wide scan. Scope-then-extract must exclude them.
+
+  All hrefs are ABSOLUTE, exactly as a saved page serializes them.
+-->
+<html lang="en"><head><meta charset="utf-8"><title>Watch later - YouTube</title></head>
+<body>
+<ytd-app>
+<div id="contents" class="style-scope ytd-playlist-video-list-renderer">
+
+<ytd-playlist-video-renderer class="style-scope ytd-playlist-video-list-renderer">
+  <div id="index-container" class="style-scope ytd-playlist-video-renderer">
+    <yt-formatted-string id="index" class="style-scope ytd-playlist-video-renderer">1</yt-formatted-string>
+  </div>
+  <div id="content" class="style-scope ytd-playlist-video-renderer">
+    <ytd-thumbnail class="style-scope ytd-playlist-video-renderer">
+      <a id="thumbnail" class="yt-simple-endpoint inline-block style-scope ytd-thumbnail" href="https://www.youtube.com/watch?v=vidAAAAAAAA&amp;list=WL&amp;index=1">
+        <ytd-thumbnail-overlay-time-status-renderer class="style-scope ytd-thumbnail" overlay-style="DEFAULT">
+          <badge-shape class="badge-shape-wiz badge-shape-wiz--thumbnail-badge" aria-label="32 minutes, 18 seconds"><div class="ytBadgeShapeText">32:18</div></badge-shape>
+          <span id="text" class="style-scope ytd-thumbnail-overlay-time-status-renderer">32:18</span>
+        </ytd-thumbnail-overlay-time-status-renderer>
+      </a>
+    </ytd-thumbnail>
+    <div id="meta" class="style-scope ytd-playlist-video-renderer">
+      <h3 class="style-scope ytd-playlist-video-renderer" aria-label="Bench Vise From Scratch 32 minutes">
+        <a id="video-title" class="yt-simple-endpoint style-scope ytd-playlist-video-renderer" title="Bench Vise From Scratch" href="https://www.youtube.com/watch?v=vidAAAAAAAA&amp;list=WL&amp;index=1&amp;pp=iAQBsAgC">Bench Vise From Scratch</a>
+      </h3>
+      <div id="metadata" class="style-scope ytd-playlist-video-renderer">
+        <ytd-video-meta-block class="style-scope ytd-playlist-video-renderer">
+          <div id="metadata-line" class="style-scope ytd-video-meta-block">
+            <yt-formatted-string id="video-info" class="style-scope ytd-video-meta-block"><span>612K views</span><span> • </span><span>2 months ago</span></yt-formatted-string>
+          </div>
+        </ytd-video-meta-block>
+        <ytd-channel-name id="channel-name" class="style-scope ytd-video-meta-block">
+          <div id="container" class="style-scope ytd-channel-name">
+            <div id="text-container" class="style-scope ytd-channel-name">
+              <yt-formatted-string id="text" class="style-scope ytd-channel-name" title="Fern Workshop"><a class="yt-simple-endpoint style-scope yt-formatted-string" spellcheck="false" href="https://www.youtube.com/@fernworkshop">Fern Workshop</a></yt-formatted-string>
+            </div>
+            <tp-yt-paper-tooltip class="style-scope ytd-channel-name"><div id="tooltip" class="hidden style-scope tp-yt-paper-tooltip">Fern Workshop</div></tp-yt-paper-tooltip>
+          </div>
+          <span id="attributed-channel-name" hidden=""></span>
+        </ytd-channel-name>
+      </div>
+    </div>
+  </div>
+</ytd-playlist-video-renderer>
+
+<ytd-playlist-video-renderer class="style-scope ytd-playlist-video-list-renderer">
+  <div id="index-container" class="style-scope ytd-playlist-video-renderer">
+    <yt-formatted-string id="index" class="style-scope ytd-playlist-video-renderer">2</yt-formatted-string>
+  </div>
+  <div id="content" class="style-scope ytd-playlist-video-renderer">
+    <ytd-thumbnail class="style-scope ytd-playlist-video-renderer">
+      <a id="thumbnail" class="yt-simple-endpoint inline-block style-scope ytd-thumbnail" href="https://www.youtube.com/watch?v=vidBBBBBBBB&amp;list=WL&amp;index=2">
+        <ytd-thumbnail-overlay-time-status-renderer class="style-scope ytd-thumbnail" overlay-style="DEFAULT">
+          <badge-shape class="badge-shape-wiz badge-shape-wiz--thumbnail-badge" aria-label="1 hour, 2 minutes, 3 seconds"><div class="ytBadgeShapeText">1:02:03</div></badge-shape>
+          <span id="text" class="style-scope ytd-thumbnail-overlay-time-status-renderer">1:02:03</span>
+        </ytd-thumbnail-overlay-time-status-renderer>
+      </a>
+    </ytd-thumbnail>
+    <div id="meta" class="style-scope ytd-playlist-video-renderer">
+      <h3 class="style-scope ytd-playlist-video-renderer" aria-label="The Long Format Interview 1 hour, 2 minutes">
+        <a id="video-title" class="yt-simple-endpoint style-scope ytd-playlist-video-renderer" title="The Long Format Interview" href="https://www.youtube.com/watch?v=vidBBBBBBBB&amp;list=WL&amp;index=2&amp;pp=iAQBsAgC">The Long Format Interview</a>
+      </h3>
+      <div id="metadata" class="style-scope ytd-playlist-video-renderer">
+        <ytd-video-meta-block class="style-scope ytd-playlist-video-renderer">
+          <div id="metadata-line" class="style-scope ytd-video-meta-block">
+            <yt-formatted-string id="video-info" class="style-scope ytd-video-meta-block"><span>1.2M views</span><span> • </span><span>1 year ago</span></yt-formatted-string>
+          </div>
+        </ytd-video-meta-block>
+        <ytd-channel-name id="channel-name" class="style-scope ytd-video-meta-block">
+          <div id="container" class="style-scope ytd-channel-name">
+            <div id="text-container" class="style-scope ytd-channel-name">
+              <yt-formatted-string id="text" class="style-scope ytd-channel-name" title="Slow Radio"><a class="yt-simple-endpoint style-scope yt-formatted-string" spellcheck="false" href="https://www.youtube.com/@slowradio">Slow Radio</a></yt-formatted-string>
+            </div>
+            <tp-yt-paper-tooltip class="style-scope ytd-channel-name"><div id="tooltip" class="hidden style-scope tp-yt-paper-tooltip">Slow Radio</div></tp-yt-paper-tooltip>
+          </div>
+          <span id="attributed-channel-name" hidden=""></span>
+        </ytd-channel-name>
+      </div>
+    </div>
+  </div>
+</ytd-playlist-video-renderer>
+
+<ytd-playlist-video-renderer class="style-scope ytd-playlist-video-list-renderer">
+  <div id="index-container" class="style-scope ytd-playlist-video-renderer">
+    <yt-formatted-string id="index" class="style-scope ytd-playlist-video-renderer">3</yt-formatted-string>
+  </div>
+  <div id="content" class="style-scope ytd-playlist-video-renderer">
+    <ytd-thumbnail class="style-scope ytd-playlist-video-renderer">
+      <a id="thumbnail" class="yt-simple-endpoint inline-block style-scope ytd-thumbnail" href="https://www.youtube.com/watch?v=vidCCCCCCCC&amp;list=WL&amp;index=3">
+        <ytd-thumbnail-overlay-time-status-renderer class="style-scope ytd-thumbnail" overlay-style="DEFAULT">
+          <badge-shape class="badge-shape-wiz badge-shape-wiz--thumbnail-badge" aria-label="45 seconds"><div class="ytBadgeShapeText">0:45</div></badge-shape>
+          <span id="text" class="style-scope ytd-thumbnail-overlay-time-status-renderer">0:45</span>
+        </ytd-thumbnail-overlay-time-status-renderer>
+      </a>
+    </ytd-thumbnail>
+    <div id="meta" class="style-scope ytd-playlist-video-renderer">
+      <h3 class="style-scope ytd-playlist-video-renderer" aria-label="Quick Tip: Deburring 45 seconds">
+        <a id="video-title" class="yt-simple-endpoint style-scope ytd-playlist-video-renderer" title="Quick Tip: Deburring" href="https://www.youtube.com/watch?v=vidCCCCCCCC&amp;list=WL&amp;index=3&amp;pp=iAQBsAgC">Quick Tip: Deburring</a>
+      </h3>
+      <div id="metadata" class="style-scope ytd-playlist-video-renderer">
+        <ytd-video-meta-block class="style-scope ytd-playlist-video-renderer">
+          <div id="metadata-line" class="style-scope ytd-video-meta-block">
+            <yt-formatted-string id="video-info" class="style-scope ytd-video-meta-block"><span>5 views</span><span> • </span><span>3 days ago</span></yt-formatted-string>
+          </div>
+        </ytd-video-meta-block>
+        <ytd-channel-name id="channel-name" class="style-scope ytd-video-meta-block">
+          <div id="container" class="style-scope ytd-channel-name">
+            <div id="text-container" class="style-scope ytd-channel-name">
+              <yt-formatted-string id="text" class="style-scope ytd-channel-name" title="Fern Workshop"><a class="yt-simple-endpoint style-scope yt-formatted-string" spellcheck="false" href="https://www.youtube.com/@fernworkshop">Fern Workshop</a></yt-formatted-string>
+            </div>
+            <tp-yt-paper-tooltip class="style-scope ytd-channel-name"><div id="tooltip" class="hidden style-scope tp-yt-paper-tooltip">Fern Workshop</div></tp-yt-paper-tooltip>
+          </div>
+          <span id="attributed-channel-name" hidden=""></span>
+        </ytd-channel-name>
+      </div>
+    </div>
+  </div>
+</ytd-playlist-video-renderer>
+
+<ytd-playlist-video-renderer class="style-scope ytd-playlist-video-list-renderer">
+  <div id="index-container" class="style-scope ytd-playlist-video-renderer">
+    <yt-formatted-string id="index" class="style-scope ytd-playlist-video-renderer">4</yt-formatted-string>
+  </div>
+  <div id="content" class="style-scope ytd-playlist-video-renderer">
+    <ytd-thumbnail class="style-scope ytd-playlist-video-renderer">
+      <a id="thumbnail" class="yt-simple-endpoint inline-block style-scope ytd-thumbnail" href="https://www.youtube.com/watch?v=vidDDDDDDDD&amp;list=WL&amp;index=4">
+        <ytd-thumbnail-overlay-time-status-renderer class="style-scope ytd-thumbnail" overlay-style="DEFAULT">
+          <badge-shape class="badge-shape-wiz badge-shape-wiz--thumbnail-badge" aria-label="12 minutes"><div class="ytBadgeShapeText">12:00</div></badge-shape>
+          <span id="text" class="style-scope ytd-thumbnail-overlay-time-status-renderer">12:00</span>
+        </ytd-thumbnail-overlay-time-status-renderer>
+      </a>
+    </ytd-thumbnail>
+    <div id="meta" class="style-scope ytd-playlist-video-renderer">
+      <h3 class="style-scope ytd-playlist-video-renderer" aria-label="Filament Drying, Tested 12 minutes">
+        <a id="video-title" class="yt-simple-endpoint style-scope ytd-playlist-video-renderer" title="Filament Drying, Tested" href="https://www.youtube.com/watch?v=vidDDDDDDDD&amp;list=WL&amp;index=4&amp;pp=iAQBsAgC">Filament Drying, Tested</a>
+      </h3>
+      <div id="metadata" class="style-scope ytd-playlist-video-renderer">
+        <ytd-video-meta-block class="style-scope ytd-playlist-video-renderer">
+          <div id="metadata-line" class="style-scope ytd-video-meta-block">
+            <yt-formatted-string id="video-info" class="style-scope ytd-video-meta-block"><span>47K views</span><span> • </span><span>8 months ago</span></yt-formatted-string>
+          </div>
+        </ytd-video-meta-block>
+        <ytd-channel-name id="channel-name" class="style-scope ytd-video-meta-block">
+          <div id="container" class="style-scope ytd-channel-name">
+            <div id="text-container" class="style-scope ytd-channel-name">
+              <yt-formatted-string id="text" class="style-scope ytd-channel-name" title="Printed Solid State"><a class="yt-simple-endpoint style-scope yt-formatted-string" spellcheck="false" href="https://www.youtube.com/@printedsolidstate">Printed Solid State</a></yt-formatted-string>
+            </div>
+            <tp-yt-paper-tooltip class="style-scope ytd-channel-name"><div id="tooltip" class="hidden style-scope tp-yt-paper-tooltip">Printed Solid State</div></tp-yt-paper-tooltip>
+          </div>
+          <span id="attributed-channel-name" hidden=""></span>
+        </ytd-channel-name>
+      </div>
+    </div>
+  </div>
+</ytd-playlist-video-renderer>
+
+<!-- row 5: /channel/UC... byline instead of /@handle (1 of 582 real rows) -->
+<ytd-playlist-video-renderer class="style-scope ytd-playlist-video-list-renderer">
+  <div id="index-container" class="style-scope ytd-playlist-video-renderer">
+    <yt-formatted-string id="index" class="style-scope ytd-playlist-video-renderer">5</yt-formatted-string>
+  </div>
+  <div id="content" class="style-scope ytd-playlist-video-renderer">
+    <ytd-thumbnail class="style-scope ytd-playlist-video-renderer">
+      <a id="thumbnail" class="yt-simple-endpoint inline-block style-scope ytd-thumbnail" href="https://www.youtube.com/watch?v=vidEEEEEEEE&amp;list=WL&amp;index=5">
+        <ytd-thumbnail-overlay-time-status-renderer class="style-scope ytd-thumbnail" overlay-style="DEFAULT">
+          <badge-shape class="badge-shape-wiz badge-shape-wiz--thumbnail-badge" aria-label="7 minutes, 30 seconds"><div class="ytBadgeShapeText">7:30</div></badge-shape>
+          <span id="text" class="style-scope ytd-thumbnail-overlay-time-status-renderer">7:30</span>
+        </ytd-thumbnail-overlay-time-status-renderer>
+      </a>
+    </ytd-thumbnail>
+    <div id="meta" class="style-scope ytd-playlist-video-renderer">
+      <h3 class="style-scope ytd-playlist-video-renderer" aria-label="Archive Footage Reel 7 minutes">
+        <a id="video-title" class="yt-simple-endpoint style-scope ytd-playlist-video-renderer" title="Archive Footage Reel" href="https://www.youtube.com/watch?v=vidEEEEEEEE&amp;list=WL&amp;index=5&amp;pp=iAQBsAgC">Archive Footage Reel</a>
+      </h3>
+      <div id="metadata" class="style-scope ytd-playlist-video-renderer">
+        <ytd-video-meta-block class="style-scope ytd-playlist-video-renderer">
+          <div id="metadata-line" class="style-scope ytd-video-meta-block">
+            <yt-formatted-string id="video-info" class="style-scope ytd-video-meta-block"><span>3.4K views</span><span> • </span><span>5 years ago</span></yt-formatted-string>
+          </div>
+        </ytd-video-meta-block>
+        <ytd-channel-name id="channel-name" class="style-scope ytd-video-meta-block">
+          <div id="container" class="style-scope ytd-channel-name">
+            <div id="text-container" class="style-scope ytd-channel-name">
+              <yt-formatted-string id="text" class="style-scope ytd-channel-name" title="Public Domain Archive"><a class="yt-simple-endpoint style-scope yt-formatted-string" spellcheck="false" href="https://www.youtube.com/channel/UCfixture0000000000001">Public Domain Archive</a></yt-formatted-string>
+            </div>
+            <tp-yt-paper-tooltip class="style-scope ytd-channel-name"><div id="tooltip" class="hidden style-scope tp-yt-paper-tooltip">Public Domain Archive</div></tp-yt-paper-tooltip>
+          </div>
+          <span id="attributed-channel-name" hidden=""></span>
+        </ytd-channel-name>
+      </div>
+    </div>
+  </div>
+</ytd-playlist-video-renderer>
+
+<!-- row 6: byline anchor with NO href. Name recoverable, url genuinely absent.
+     19 of 582 real rows (3.26%) look exactly like this. NOT a deleted video. -->
+<ytd-playlist-video-renderer class="style-scope ytd-playlist-video-list-renderer">
+  <div id="index-container" class="style-scope ytd-playlist-video-renderer">
+    <yt-formatted-string id="index" class="style-scope ytd-playlist-video-renderer">6</yt-formatted-string>
+  </div>
+  <div id="content" class="style-scope ytd-playlist-video-renderer">
+    <ytd-thumbnail class="style-scope ytd-playlist-video-renderer">
+      <a id="thumbnail" class="yt-simple-endpoint inline-block style-scope ytd-thumbnail" href="https://www.youtube.com/watch?v=vidFFFFFFFF&amp;list=WL&amp;index=6">
+        <ytd-thumbnail-overlay-time-status-renderer class="style-scope ytd-thumbnail" overlay-style="DEFAULT">
+          <badge-shape class="badge-shape-wiz badge-shape-wiz--thumbnail-badge" aria-label="4 minutes, 5 seconds"><div class="ytBadgeShapeText">4:05</div></badge-shape>
+          <span id="text" class="style-scope ytd-thumbnail-overlay-time-status-renderer">4:05</span>
+        </ytd-thumbnail-overlay-time-status-renderer>
+      </a>
+    </ytd-thumbnail>
+    <div id="meta" class="style-scope ytd-playlist-video-renderer">
+      <h3 class="style-scope ytd-playlist-video-renderer" aria-label="Joint Research Announcement 4 minutes">
+        <a id="video-title" class="yt-simple-endpoint style-scope ytd-playlist-video-renderer" title="Joint Research Announcement" href="https://www.youtube.com/watch?v=vidFFFFFFFF&amp;list=WL&amp;index=6&amp;pp=iAQBsAgC">Joint Research Announcement</a>
+      </h3>
+      <div id="metadata" class="style-scope ytd-playlist-video-renderer">
+        <ytd-video-meta-block class="style-scope ytd-playlist-video-renderer">
+          <div id="metadata-line" class="style-scope ytd-video-meta-block">
+            <yt-formatted-string id="video-info" class="style-scope ytd-video-meta-block"><span>88K views</span><span> • </span><span>4 weeks ago</span></yt-formatted-string>
+          </div>
+        </ytd-video-meta-block>
+        <ytd-channel-name id="channel-name" class="style-scope ytd-video-meta-block">
+          <div id="container" class="style-scope ytd-channel-name">
+            <div id="text-container" class="style-scope ytd-channel-name">
+              <yt-formatted-string id="text" class="style-scope ytd-channel-name" title="Northwind Labs and Apex Robotics"><a class="yt-simple-endpoint style-scope yt-formatted-string" spellcheck="false">Northwind Labs and Apex Robotics</a></yt-formatted-string>
+            </div>
+            <tp-yt-paper-tooltip class="style-scope ytd-channel-name"><div id="tooltip" class="hidden style-scope tp-yt-paper-tooltip">Northwind Labs and Apex Robotics</div></tp-yt-paper-tooltip>
+          </div>
+          <span id="attributed-channel-name" hidden=""></span>
+        </ytd-channel-name>
+      </div>
+    </div>
+  </div>
+</ytd-playlist-video-renderer>
+
+<!-- row 7: is-empty byline. NEITHER name nor url. 3 of 582 (0.52%), a strict subset of the 19. -->
+<ytd-playlist-video-renderer class="style-scope ytd-playlist-video-list-renderer">
+  <div id="index-container" class="style-scope ytd-playlist-video-renderer">
+    <yt-formatted-string id="index" class="style-scope ytd-playlist-video-renderer">7</yt-formatted-string>
+  </div>
+  <div id="content" class="style-scope ytd-playlist-video-renderer">
+    <ytd-thumbnail class="style-scope ytd-playlist-video-renderer">
+      <a id="thumbnail" class="yt-simple-endpoint inline-block style-scope ytd-thumbnail" href="https://www.youtube.com/watch?v=vidGGGGGGGG&amp;list=WL&amp;index=7">
+        <ytd-thumbnail-overlay-time-status-renderer class="style-scope ytd-thumbnail" overlay-style="DEFAULT">
+          <badge-shape class="badge-shape-wiz badge-shape-wiz--thumbnail-badge" aria-label="21 minutes, 9 seconds"><div class="ytBadgeShapeText">21:09</div></badge-shape>
+          <span id="text" class="style-scope ytd-thumbnail-overlay-time-status-renderer">21:09</span>
+        </ytd-thumbnail-overlay-time-status-renderer>
+      </a>
+    </ytd-thumbnail>
+    <div id="meta" class="style-scope ytd-playlist-video-renderer">
+      <h3 class="style-scope ytd-playlist-video-renderer" aria-label="Auto Generated Session Recording 21 minutes">
+        <a id="video-title" class="yt-simple-endpoint style-scope ytd-playlist-video-renderer" title="Auto Generated Session Recording" href="https://www.youtube.com/watch?v=vidGGGGGGGG&amp;list=WL&amp;index=7&amp;pp=iAQBsAgC">Auto Generated Session Recording</a>
+      </h3>
+      <div id="metadata" class="style-scope ytd-playlist-video-renderer">
+        <ytd-video-meta-block class="style-scope ytd-playlist-video-renderer">
+          <div id="metadata-line" class="style-scope ytd-video-meta-block">
+            <yt-formatted-string id="video-info" class="style-scope ytd-video-meta-block"><span>212 views</span><span> • </span><span>2 weeks ago</span></yt-formatted-string>
+          </div>
+        </ytd-video-meta-block>
+        <ytd-channel-name id="channel-name" class="style-scope ytd-video-meta-block">
+          <div id="container" class="style-scope ytd-channel-name">
+            <div id="text-container" class="style-scope ytd-channel-name">
+              <yt-formatted-string id="text" class="style-scope ytd-channel-name" title="" is-empty=""><yt-attributed-string class="style-scope yt-formatted-string"></yt-attributed-string></yt-formatted-string>
+            </div>
+          </div>
+          <span id="attributed-channel-name" hidden=""></span>
+        </ytd-channel-name>
+      </div>
+    </div>
+  </div>
+</ytd-playlist-video-renderer>
+
+<!-- row 8: [Private video]. ZERO of these exist in the real capture — synthetic coverage only. -->
+<ytd-playlist-video-renderer class="style-scope ytd-playlist-video-list-renderer">
+  <div id="index-container" class="style-scope ytd-playlist-video-renderer">
+    <yt-formatted-string id="index" class="style-scope ytd-playlist-video-renderer">8</yt-formatted-string>
+  </div>
+  <div id="content" class="style-scope ytd-playlist-video-renderer">
+    <ytd-thumbnail class="style-scope ytd-playlist-video-renderer">
+      <a id="thumbnail" class="yt-simple-endpoint inline-block style-scope ytd-thumbnail" href="https://www.youtube.com/watch?v=vidHHHHHHHH&amp;list=WL&amp;index=8"></a>
+    </ytd-thumbnail>
+    <div id="meta" class="style-scope ytd-playlist-video-renderer">
+      <h3 class="style-scope ytd-playlist-video-renderer" aria-label="[Private video]">
+        <a id="video-title" class="yt-simple-endpoint style-scope ytd-playlist-video-renderer" title="[Private video]" href="https://www.youtube.com/watch?v=vidHHHHHHHH&amp;list=WL&amp;index=8">[Private video]</a>
+      </h3>
+      <div id="metadata" class="style-scope ytd-playlist-video-renderer">
+        <ytd-video-meta-block class="style-scope ytd-playlist-video-renderer">
+          <div id="metadata-line" class="style-scope ytd-video-meta-block"></div>
+        </ytd-video-meta-block>
+      </div>
+    </div>
+  </div>
+</ytd-playlist-video-renderer>
+
+<!-- row 9: [Deleted video]. Also synthetic-only. -->
+<ytd-playlist-video-renderer class="style-scope ytd-playlist-video-list-renderer">
+  <div id="index-container" class="style-scope ytd-playlist-video-renderer">
+    <yt-formatted-string id="index" class="style-scope ytd-playlist-video-renderer">9</yt-formatted-string>
+  </div>
+  <div id="content" class="style-scope ytd-playlist-video-renderer">
+    <ytd-thumbnail class="style-scope ytd-playlist-video-renderer">
+      <a id="thumbnail" class="yt-simple-endpoint inline-block style-scope ytd-thumbnail" href="https://www.youtube.com/watch?v=vidIIIIIIII&amp;list=WL&amp;index=9"></a>
+    </ytd-thumbnail>
+    <div id="meta" class="style-scope ytd-playlist-video-renderer">
+      <h3 class="style-scope ytd-playlist-video-renderer" aria-label="[Deleted video]">
+        <a id="video-title" class="yt-simple-endpoint style-scope ytd-playlist-video-renderer" title="[Deleted video]" href="https://www.youtube.com/watch?v=vidIIIIIIII&amp;list=WL&amp;index=9">[Deleted video]</a>
+      </h3>
+      <div id="metadata" class="style-scope ytd-playlist-video-renderer">
+        <ytd-video-meta-block class="style-scope ytd-playlist-video-renderer">
+          <div id="metadata-line" class="style-scope ytd-video-meta-block"></div>
+        </ytd-video-meta-block>
+      </div>
+    </div>
+  </div>
+</ytd-playlist-video-renderer>
+
+<!-- rows 10-12: ordinal 10 is SKIPPED and ordinal 12 appears TWICE, reproducing the real page,
+     which is missing 400 and 415 and carries 499/500 twice. `order` is a hint, not a sequence. -->
+<ytd-playlist-video-renderer class="style-scope ytd-playlist-video-list-renderer">
+  <div id="index-container" class="style-scope ytd-playlist-video-renderer">
+    <yt-formatted-string id="index" class="style-scope ytd-playlist-video-renderer">11</yt-formatted-string>
+  </div>
+  <div id="content" class="style-scope ytd-playlist-video-renderer">
+    <ytd-thumbnail class="style-scope ytd-playlist-video-renderer">
+      <a id="thumbnail" class="yt-simple-endpoint inline-block style-scope ytd-thumbnail" href="https://www.youtube.com/watch?v=vidJJJJJJJJ&amp;list=WL&amp;index=11">
+        <ytd-thumbnail-overlay-time-status-renderer class="style-scope ytd-thumbnail" overlay-style="DEFAULT">
+          <badge-shape class="badge-shape-wiz badge-shape-wiz--thumbnail-badge" aria-label="9 minutes, 12 seconds"><div class="ytBadgeShapeText">9:12</div></badge-shape>
+          <span id="text" class="style-scope ytd-thumbnail-overlay-time-status-renderer">9:12</span>
+        </ytd-thumbnail-overlay-time-status-renderer>
+      </a>
+    </ytd-thumbnail>
+    <div id="meta" class="style-scope ytd-playlist-video-renderer">
+      <h3 class="style-scope ytd-playlist-video-renderer" aria-label="Shelf Brackets, Revisited 9 minutes">
+        <a id="video-title" class="yt-simple-endpoint style-scope ytd-playlist-video-renderer" title="Shelf Brackets, Revisited" href="https://www.youtube.com/watch?v=vidJJJJJJJJ&amp;list=WL&amp;index=11&amp;pp=iAQBsAgC">Shelf Brackets, Revisited</a>
+      </h3>
+      <div id="metadata" class="style-scope ytd-playlist-video-renderer">
+        <ytd-video-meta-block class="style-scope ytd-playlist-video-renderer">
+          <div id="metadata-line" class="style-scope ytd-video-meta-block">
+            <yt-formatted-string id="video-info" class="style-scope ytd-video-meta-block"><span>14K views</span><span> • </span><span>6 months ago</span></yt-formatted-string>
+          </div>
+        </ytd-video-meta-block>
+        <ytd-channel-name id="channel-name" class="style-scope ytd-video-meta-block">
+          <div id="container" class="style-scope ytd-channel-name">
+            <div id="text-container" class="style-scope ytd-channel-name">
+              <yt-formatted-string id="text" class="style-scope ytd-channel-name" title="Fern Workshop"><a class="yt-simple-endpoint style-scope yt-formatted-string" spellcheck="false" href="https://www.youtube.com/@fernworkshop">Fern Workshop</a></yt-formatted-string>
+            </div>
+            <tp-yt-paper-tooltip class="style-scope ytd-channel-name"><div id="tooltip" class="hidden style-scope tp-yt-paper-tooltip">Fern Workshop</div></tp-yt-paper-tooltip>
+          </div>
+          <span id="attributed-channel-name" hidden=""></span>
+        </ytd-channel-name>
+      </div>
+    </div>
+  </div>
+</ytd-playlist-video-renderer>
+
+<ytd-playlist-video-renderer class="style-scope ytd-playlist-video-list-renderer">
+  <div id="index-container" class="style-scope ytd-playlist-video-renderer">
+    <yt-formatted-string id="index" class="style-scope ytd-playlist-video-renderer">12</yt-formatted-string>
+  </div>
+  <div id="content" class="style-scope ytd-playlist-video-renderer">
+    <ytd-thumbnail class="style-scope ytd-playlist-video-renderer">
+      <a id="thumbnail" class="yt-simple-endpoint inline-block style-scope ytd-thumbnail" href="https://www.youtube.com/watch?v=vidKKKKKKKK&amp;list=WL&amp;index=12">
+        <ytd-thumbnail-overlay-time-status-renderer class="style-scope ytd-thumbnail" overlay-style="DEFAULT">
+          <badge-shape class="badge-shape-wiz badge-shape-wiz--thumbnail-badge" aria-label="2 minutes, 40 seconds"><div class="ytBadgeShapeText">2:40</div></badge-shape>
+          <span id="text" class="style-scope ytd-thumbnail-overlay-time-status-renderer">2:40</span>
+        </ytd-thumbnail-overlay-time-status-renderer>
+      </a>
+    </ytd-thumbnail>
+    <div id="meta" class="style-scope ytd-playlist-video-renderer">
+      <h3 class="style-scope ytd-playlist-video-renderer" aria-label="Two Minute Teardown 2 minutes">
+        <a id="video-title" class="yt-simple-endpoint style-scope ytd-playlist-video-renderer" title="Two Minute Teardown" href="https://www.youtube.com/watch?v=vidKKKKKKKK&amp;list=WL&amp;index=12&amp;pp=iAQBsAgC">Two Minute Teardown</a>
+      </h3>
+      <div id="metadata" class="style-scope ytd-playlist-video-renderer">
+        <ytd-video-meta-block class="style-scope ytd-playlist-video-renderer">
+          <div id="metadata-line" class="style-scope ytd-video-meta-block">
+            <yt-formatted-string id="video-info" class="style-scope ytd-video-meta-block"><span>903K views</span><span> • </span><span>3 years ago</span></yt-formatted-string>
+          </div>
+        </ytd-video-meta-block>
+        <ytd-channel-name id="channel-name" class="style-scope ytd-video-meta-block">
+          <div id="container" class="style-scope ytd-channel-name">
+            <div id="text-container" class="style-scope ytd-channel-name">
+              <yt-formatted-string id="text" class="style-scope ytd-channel-name" title="Slow Radio"><a class="yt-simple-endpoint style-scope yt-formatted-string" spellcheck="false" href="https://www.youtube.com/@slowradio">Slow Radio</a></yt-formatted-string>
+            </div>
+            <tp-yt-paper-tooltip class="style-scope ytd-channel-name"><div id="tooltip" class="hidden style-scope tp-yt-paper-tooltip">Slow Radio</div></tp-yt-paper-tooltip>
+          </div>
+          <span id="attributed-channel-name" hidden=""></span>
+        </ytd-channel-name>
+      </div>
+    </div>
+  </div>
+</ytd-playlist-video-renderer>
+
+<ytd-playlist-video-renderer class="style-scope ytd-playlist-video-list-renderer">
+  <div id="index-container" class="style-scope ytd-playlist-video-renderer">
+    <yt-formatted-string id="index" class="style-scope ytd-playlist-video-renderer">12</yt-formatted-string>
+  </div>
+  <div id="content" class="style-scope ytd-playlist-video-renderer">
+    <ytd-thumbnail class="style-scope ytd-playlist-video-renderer">
+      <a id="thumbnail" class="yt-simple-endpoint inline-block style-scope ytd-thumbnail" href="https://www.youtube.com/watch?v=vidLLLLLLLL&amp;list=WL&amp;index=12">
+        <ytd-thumbnail-overlay-time-status-renderer class="style-scope ytd-thumbnail" overlay-style="DEFAULT">
+          <badge-shape class="badge-shape-wiz badge-shape-wiz--thumbnail-badge" aria-label="55 minutes, 1 second"><div class="ytBadgeShapeText">55:01</div></badge-shape>
+          <span id="text" class="style-scope ytd-thumbnail-overlay-time-status-renderer">55:01</span>
+        </ytd-thumbnail-overlay-time-status-renderer>
+      </a>
+    </ytd-thumbnail>
+    <div id="meta" class="style-scope ytd-playlist-video-renderer">
+      <h3 class="style-scope ytd-playlist-video-renderer" aria-label="Conference Keynote 55 minutes">
+        <a id="video-title" class="yt-simple-endpoint style-scope ytd-playlist-video-renderer" title="Conference Keynote" href="https://www.youtube.com/watch?v=vidLLLLLLLL&amp;list=WL&amp;index=12&amp;pp=iAQBsAgC">Conference Keynote</a>
+      </h3>
+      <div id="metadata" class="style-scope ytd-playlist-video-renderer">
+        <ytd-video-meta-block class="style-scope ytd-playlist-video-renderer">
+          <div id="metadata-line" class="style-scope ytd-video-meta-block">
+            <yt-formatted-string id="video-info" class="style-scope ytd-video-meta-block"><span>2.1M views</span><span> • </span><span>11 months ago</span></yt-formatted-string>
+          </div>
+        </ytd-video-meta-block>
+        <ytd-channel-name id="channel-name" class="style-scope ytd-video-meta-block">
+          <div id="container" class="style-scope ytd-channel-name">
+            <div id="text-container" class="style-scope ytd-channel-name">
+              <yt-formatted-string id="text" class="style-scope ytd-channel-name" title="Printed Solid State"><a class="yt-simple-endpoint style-scope yt-formatted-string" spellcheck="false" href="https://www.youtube.com/@printedsolidstate">Printed Solid State</a></yt-formatted-string>
+            </div>
+            <tp-yt-paper-tooltip class="style-scope ytd-channel-name"><div id="tooltip" class="hidden style-scope tp-yt-paper-tooltip">Printed Solid State</div></tp-yt-paper-tooltip>
+          </div>
+          <span id="attributed-channel-name" hidden=""></span>
+        </ytd-channel-name>
+      </div>
+    </div>
+  </div>
+</ytd-playlist-video-renderer>
+
+</div>
+
+<!-- DECOYS. Outside every row element, exactly like the 57 non-playlist ids on the real page
+     (39 from a leftover ytInitialData blob, 18 from description/nofollow anchors).
+     A page-wide id scan picks these up; scope-then-extract must not. -->
+<div id="related" class="style-scope ytd-watch-next-secondary-results-renderer">
+  <a class="yt-simple-endpoint" href="https://www.youtube.com/watch?v=decoy000001">Recommended for you</a>
+  <a class="yt-simple-endpoint" href="https://www.youtube.com/watch?v=decoy000002">Up next</a>
+  <a rel="nofollow" class="yt-simple-endpoint" href="https://www.youtube.com/watch?v=decoy000003">Linked in a description</a>
+</div>
+<script>var ytInitialData = {"contents":{"twoColumnBrowseResultsRenderer":{"tabs":[]}},"videoId":"decoy000004","note":"Homepage-feed payload left behind by SPA navigation. Contains ZERO playlistVideoRenderer nodes, exactly as measured on the real page."};</script>
+</ytd-app>
+</body></html>

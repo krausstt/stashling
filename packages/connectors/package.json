@@ -1,0 +1,19 @@
+{
+  "name": "@stashling/connectors",
+  "version": "0.1.0",
+  "description": "Pure source connectors: match, parseList, parseDetail, normalize, liveness, facets. No network, no DOM, no dependencies.",
+  "license": "MPL-2.0",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./youtube": "./src/youtube.js",
+    "./makerworld": "./src/makerworld.js",
+    "./shared/html": "./src/_shared/html.js"
+  },
+  "files": ["src"],
+  "sideEffects": false,
+  "engines": { "node": ">=20.6.0" },
+  "dependencies": { "@stashling/core": "0.1.0" },
+  "scripts": { "test": "node --test test/" }
+}

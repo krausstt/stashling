@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "source": "youtube",
+  "note": "Committed fixtures are SYNTHETIC: hand-authored markup reproducing the structural shapes measured on a real saved Watch Later page, with invented video ids, titles and channel names. The real page is local-only and gitignored, because it is the collector's personal viewing history. See README.md in this directory for the measurements.",
+  "files": [
+    {
+      "path": "watch-later.fixture.html",
+      "role": "committed",
+      "bytes": 34261,
+      "sha256": "b6e81b6268b3ee1ef5ca2b8927745e6b044be9f42aad5dc121b1ff4817f4a599",
+      "describes": "12 ytd-playlist-video-renderer rows covering: all three view-count shapes (#K / #M / bare), both duration shapes (M:SS and H:MM:SS), a /channel/UC byline, an href-less byline anchor (name, no url), an is-empty byline (neither), [Private video] and [Deleted video] placeholders, skipped and duplicated ordinals, the hidden always-empty #attributed-channel-name trap, a second id=\"text\" element per row, and decoy watch?v= anchors plus a leftover ytInitialData blob outside every row.",
+      "regenerate": "Hand-authored. Edit directly. Every new extraction bug found in real data should become another row here."
+    },
+    {
+      "path": "_local/watch-later.html",
+      "role": "local-only",
+      "bytes": 12725371,
+      "sha256": null,
+      "describes": "The real saved Watch Later page the connector was measured against: 582 rows, 639 page-wide unique watch?v= ids, 100% coverage on id/title/duration/index/views, 99.48% on channel name, 96.74% on channel url, 0 placeholder rows, 0 playlistVideoRenderer nodes in ytInitialData.",
+      "regenerate": "Open your own YouTube Watch Later playlist while logged in, scroll to the end, then save the page with Ctrl+S as 'Web Page, Complete' into fixtures/youtube/_local/. NEVER commit it — it is your viewing history. Absence is expected and is reported as skipped, not as a failure."
+    }
+  ]
+}
