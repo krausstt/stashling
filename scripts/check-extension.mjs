@@ -201,6 +201,44 @@ if (!existsSync(vendor)) {
   if (!count) fail('extension/vendor contains no JavaScript — run `npm run sync`')
 }
 
+// ── the collection UI renders every facet type core supports ──────────────────
+
+/**
+ * A connector declaring a facet type the UI does not render gets a filter that silently does
+ * nothing: `matchesFilter` honours it, so the filter is real, but no control is ever drawn.
+ * That shipped — `makerworld` declared two `bool` facets and the UI branched only on `range`
+ * and `term`, so "A1 mini" and "Prints without AMS" were invisible while looking implemented.
+ *
+ * The two files cannot enforce this on each other at runtime, and no test loads the DOM, so it
+ * is checked lexically here instead. Strings are deliberately NOT blanked out: string literals
+ * are exactly what is being matched.
+ */
+const facetsFile = path.join(EXT, 'vendor', 'core', 'facets.js')
+const collectionFile = path.join(EXT, 'ui', 'collection.js')
+if (!existsSync(facetsFile) || !existsSync(collectionFile)) {
+  notes.push('facet-coverage check skipped — vendor/core/facets.js or ui/collection.js is missing')
+} else {
+  const declared = /FACET_TYPES\s*=\s*new Set\(\[([\s\S]*?)\]\)/.exec(readFileSync(facetsFile, 'utf8'))
+  if (!declared) {
+    notes.push('facet-coverage check skipped — could not find FACET_TYPES in vendor/core/facets.js')
+  } else {
+    const types = [...declared[1].matchAll(/['"]([^'"]+)['"]/g)].map((m) => m[1])
+    const ui = readFileSync(collectionFile, 'utf8')
+    const handled = types.filter((t) => new RegExp(
+      `facet\\.type\\s*===\\s*['"]${t}['"]|case\\s*['"]${t}['"]`).test(ui))
+    for (const t of types) {
+      if (!handled.includes(t)) {
+        fail(`core supports the "${t}" facet type but ui/collection.js never renders a control `
+          + 'for it — a connector declaring it would get a filter that silently does nothing')
+      }
+    }
+    if (types.length) {
+      notes.push(`facet coverage: ${handled.length}/${types.length} core facet types render `
+        + `(${types.join(', ')})`)
+    }
+  }
+}
+
 // ── report ────────────────────────────────────────────────────────────────────
 
 process.stdout.write(`check-extension: ${reachable.size} module(s) reachable from `

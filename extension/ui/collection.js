@@ -28,8 +28,7 @@ const notice = (text) => {
 }
 
 /** Facet manifests from every connector, deduplicated by key. */
-async function loadFacets() {
-  const connectors = await send('connectors')
+function facetsFrom(connectors) {
   const byKey = new Map()
   for (const c of connectors ?? []) {
     for (const f of c.facets ?? []) if (!byKey.has(f.key)) byKey.set(f.key, f)
@@ -73,6 +72,23 @@ function renderFacets() {
       box.innerHTML = `<h3>${facet.label}</h3>
         <select data-key="${facet.key}" data-side="term"><option value="">any</option>${options}</select>`
       $('facets').append(box)
+    } else if (facet.type === 'bool') {
+      // Tri-state, not a checkbox. A checkbox cannot say "either" — it collapses "show me the
+      // ones without AMS" and "I don't care" into the same unchecked box, so the filter would
+      // silently narrow the collection the moment the facet rendered.
+      const counts = termCounts(items, facet)
+      if (!counts.length) continue
+      const seen = (v) => counts.find((c) => c.value === v)?.count ?? 0
+      const box = document.createElement('div')
+      box.className = 'facet'
+      box.innerHTML = `<h3>${escapeHtml(facet.label)}</h3>
+        <select data-key="${escapeAttr(facet.key)}" data-side="bool">
+          <option value="">either</option>
+          <option value="yes">yes (${seen('true')})</option>
+          <option value="no">no (${seen('false')})</option>
+        </select>
+        <div class="hint">${counts.reduce((n, c) => n + c.count, 0)} of ${items.length} items say</div>`
+      $('facets').append(box)
     }
   }
 
@@ -89,6 +105,10 @@ function onFilterChange(event) {
 
   if (side === 'term') {
     if (raw) filters[key] = { any: [raw] }
+    else delete filters[key]
+  } else if (side === 'bool') {
+    if (raw === 'yes') filters[key] = { value: true }
+    else if (raw === 'no') filters[key] = { value: false }
     else delete filters[key]
   } else {
     const current = filters[key] ?? {}
@@ -151,7 +171,7 @@ async function load() {
     send('items', { limit: 100000 }), send('connectors'), send('grantedHosts'),
   ])
   items = result?.items ?? []
-  facets = await loadFacets()
+  facets = facetsFrom(connectors)
 
   $('granted').textContent = granted?.length ? granted.join(', ') : 'none yet'
 
@@ -161,7 +181,6 @@ async function load() {
 
   renderFacets()
   render()
-  void connectors
 }
 
 $('search').addEventListener('input', render)
