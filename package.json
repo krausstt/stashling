@@ -17,7 +17,9 @@
     "fixtures": "node scripts/fixtures.mjs",
     "sync": "node scripts/sync-extension.mjs",
     "sync:check": "node scripts/sync-extension.mjs --check",
-    "check": "npm run sync:check && npm test"
+    "extension": "node scripts/check-extension.mjs",
+    "ui": "node scripts/ui-harness.mjs",
+    "check": "npm run sync:check && npm run extension && npm run fixtures && npm test"
   },
   "repository": { "type": "git", "url": "https://github.com/krausstt/stashling.git" },
   "keywords": ["data-portability", "data-sovereignty", "browser-extension", "manifest-v3", "scraper", "collector", "local-first"]

@@ -29,7 +29,7 @@
 import {
   connectors, connectorFor, listFor, allHosts,
 } from './vendor/connectors/index.js'
-import { mergeItems, toJsonl } from './vendor/core/index.js'
+import { createItem, mergeItems, toJsonl } from './vendor/core/index.js'
 import * as store from './store.js'
 import * as perms from './permissions.js'
 import { capture } from './strategies/dom-active-tab.js'
@@ -99,7 +99,14 @@ async function collect({ tabId, url, connectorId, listId }) {
     await beat({ phase: 'parsing', seen: page.rowsSeen })
 
     const now = Date.now()
-    const ctx = { url: page.url ?? url, list: resolvedList, listId: resolvedList, now, strategy: 'dom-active-tab' }
+    // `capturedAt` is the name the connectors read; `now` is the name the CLI host uses. Passing
+    // only one of them is how the first version of this shipped every collected item with
+    // `times.firstSeenAt: 0` — losing the provenance timestamps that are one of the six
+    // mechanisms this whole design was distilled from.
+    const ctx = {
+      url: page.url ?? url, list: resolvedList, listId: resolvedList,
+      now, capturedAt: now, strategy: 'dom-active-tab',
+    }
     const raws = connector.parseList(page.html, ctx)
 
     await beat({ total: raws.length })
@@ -111,7 +118,11 @@ async function collect({ tabId, url, connectorId, listId }) {
     for (let i = 0; i < raws.length; i += 1) {
       try {
         const partial = connector.normalize(raws[i], { ...ctx, index: i })
-        if (partial) items.push(partial)
+        // `normalize` returns a PARTIAL Item — no `id`, because the id is core's to derive from
+        // source + sourceId. Handing the partial straight to the store meant every record hit
+        // the `if (!item?.id) continue` guard and was silently skipped: the run reported success
+        // and stored nothing.
+        if (partial) items.push(createItem(partial))
       } catch (err) {
         problems.push({ index: i, message: err?.message ?? String(err) })
       }
@@ -119,7 +130,7 @@ async function collect({ tabId, url, connectorId, listId }) {
     }
 
     await beat({ phase: 'storing', done: raws.length })
-    const written = await store.upsertItems(items, { merge: mergeItems, writer: 'connector' })
+    const written = await store.upsertItems(items, { mergeItems, writer: 'connector' })
 
     await store.bumpGeneration()
     await beat({
@@ -158,7 +169,15 @@ async function collect({ tabId, url, connectorId, listId }) {
 
 // ── file import ───────────────────────────────────────────────────────────────
 
-async function importFile({ text, name, force }) {
+/**
+ * @param {object} msg
+ * @param {string} [msg.connectorId] force a connector, for a saved page that does not say what
+ *   it is. Real saved pages usually carry `<link rel="canonical">` — the measured Watch Later
+ *   capture does — but plenty of sites do not, and without this the only answer the UI can give
+ *   is "no bundled connector recognises that page", which is unactionable.
+ * @param {string} [msg.url] override the sniffed page URL, which also selects the list.
+ */
+async function importFile({ text, name, force, connectorId, url }) {
   if (looksLikeInterchange(text)) {
     const local = { items: await store.readItems(), attrs: await store.readAttrs() }
     const state = {
@@ -169,16 +188,16 @@ async function importFile({ text, name, force }) {
     const result = importInterchange(text, local, state)
     if (!result.ok) return result
 
-    await store.putMany(store.STORES.items, result.items)
+    await store.putItems(result.items)
     await store.upsertAttrRows(result.attrs)
     if (result.meta?.lineage && !state.lineage) await store.setMeta('lineage', result.meta.lineage)
     await store.bumpGeneration()
     return { ...result, kind: 'interchange', name }
   }
 
-  const parsed = importSavedPage(text, { now: Date.now() })
+  const parsed = importSavedPage(text, { now: Date.now(), connectorId, url })
   if (!parsed.ok) return parsed
-  const written = await store.upsertItems(parsed.items, { merge: mergeItems, writer: 'connector' })
+  const written = await store.upsertItems(parsed.items, { mergeItems, writer: 'connector' })
   await store.bumpGeneration()
   return { ...parsed, ...written, kind: 'saved-page', name }
 }

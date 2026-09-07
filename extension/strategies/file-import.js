@@ -85,7 +85,10 @@ export function importSavedPage(html, opts = {}) {
     ?? (url ? listFor(connector, url)?.instanceId?.(url) ?? listFor(connector, url)?.id : null)
     ?? null
 
-  const ctx = { url, list: listId, listId, now: opts.now ?? 0, strategy: 'file-import' }
+  // Both names, for the same reason as the collect path: connectors read `capturedAt` while the
+  // CLI host passes `now`, and supplying only one leaves every item with zero provenance times.
+  const now = opts.now ?? 0
+  const ctx = { url, list: listId, listId, now, capturedAt: now, strategy: 'file-import' }
   const raws = connector.parseList(html, ctx)
 
   const items = []

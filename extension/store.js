@@ -62,6 +62,7 @@ export const MAX_RAW_HISTORY = 10
 // ── connection ────────────────────────────────────────────────────────────────
 
 let cachedDb = null
+let opening = null
 
 /**
  * One cached connection, dropped the moment the browser closes it.
@@ -69,10 +70,18 @@ let cachedDb = null
  * The `onclose` handler is not decoration. Without it a handle closed by the browser (tab
  * discarded, storage pressure, a version change from another context) stays cached and every
  * subsequent transaction throws `InvalidStateError` until the whole worker is restarted.
+ *
+ * The IN-FLIGHT promise is cached too, not just the resolved handle. Caching only the handle
+ * looks equivalent and is not: `cachedDb` stays null until `onsuccess`, so two callers that ask
+ * before it fires — the popup polling `stats` while the collection page loads `items`, which is
+ * an ordinary pair — each issue their own `indexedDB.open`. The later one wins the cache slot
+ * and the earlier connection is never closed, so it leaks and, worse, holds a version lock that
+ * makes a future upgrade block forever.
  */
 export function openDb() {
   if (cachedDb) return Promise.resolve(cachedDb)
-  return new Promise((resolve, reject) => {
+  if (opening) return opening
+  opening = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
 
     req.onupgradeneeded = (event) => {
@@ -100,20 +109,26 @@ export function openDb() {
 
     req.onsuccess = () => {
       const db = req.result
-      db.onclose = () => { cachedDb = null }
-      db.onversionchange = () => { db.close(); cachedDb = null }
+      db.onclose = () => { cachedDb = null; opening = null }
+      db.onversionchange = () => { db.close(); cachedDb = null; opening = null }
       cachedDb = db
       resolve(db)
     }
     req.onerror = () => reject(req.error ?? new Error('indexedDB.open failed'))
     req.onblocked = () => reject(new Error('indexedDB.open blocked by another open connection'))
   })
+
+  // A failed open must not be cached, or one transient error poisons the worker for its whole
+  // lifetime. The next caller gets a fresh attempt.
+  opening = opening.catch((err) => { opening = null; throw err })
+  return opening
 }
 
 /** Drop the cached handle. Used by the collection page before a destructive operation. */
 export function closeDb() {
   if (cachedDb) cachedDb.close()
   cachedDb = null
+  opening = null
 }
 
 function txDone(tx) {
@@ -289,6 +304,11 @@ export async function upsertItems(incoming, opts = {}) {
 
       if (split.rawRecord) {
         if (split.rawRecord.omitted) {
+          // The marker is WRITTEN, not merely counted. Without a row here there is no way to
+          // tell "this connector captured no raw" from "a raw was captured and dropped for
+          // size", and the second one is a fact about your collection that you want to be able
+          // to find later. The comment on MAX_RAW_BYTES promises exactly this.
+          rawRecords.push(split.rawRecord)
           rawsOmitted += 1
         } else {
           const priorRaw = existingRaws.get(item.id)
@@ -313,6 +333,50 @@ export async function upsertItems(incoming, opts = {}) {
   }
 
   return { added, merged, rawsStored, rawsOmitted }
+}
+
+/**
+ * Write already-merged items, splitting the raw blob out exactly as `upsertItems` does.
+ *
+ * The interchange import merges in core and then needs to persist the RESULT — it must not
+ * re-merge, so it cannot go through `upsertItems`. Before this existed it called `putMany` on
+ * the items directly, which quietly broke two invariants at once: the blob went into the `items`
+ * store (so every subsequent `readItems()` — the popup, the collection page, every export —
+ * dragged verbatim page bodies through structured clone), and `MAX_RAW_BYTES` was never
+ * applied, which is the precise shape of the quota blowout that cost MakerWorld 0.6.1 every
+ * thumbnail it had.
+ *
+ * @returns {Promise<{written:number, rawsStored:number, rawsOmitted:number}>}
+ */
+export async function putItems(items, opts = {}) {
+  const { flushEvery = FLUSH_EVERY, onFlush = null } = opts
+  let rawsStored = 0
+  let rawsOmitted = 0
+  let written = 0
+
+  for (let offset = 0; offset < items.length; offset += flushEvery) {
+    const batch = items.slice(offset, offset + flushEvery)
+    const itemRecords = []
+    const rawRecords = []
+
+    for (const item of batch) {
+      if (!item?.id) continue
+      const split = await splitRaw(item)
+      itemRecords.push(split.item)
+      if (split.rawRecord) {
+        rawRecords.push(split.rawRecord)
+        if (split.rawRecord.omitted) rawsOmitted += 1
+        else rawsStored += 1
+      }
+    }
+
+    await putMany(STORES.items, itemRecords)
+    if (rawRecords.length) await putMany(STORES.raws, rawRecords)
+    written += itemRecords.length
+    if (onFlush) onFlush({ done: written, total: items.length })
+  }
+
+  return { written, rawsStored, rawsOmitted }
 }
 
 // ── attrs ─────────────────────────────────────────────────────────────────────
@@ -478,7 +542,11 @@ export const INITIAL_STATUS = Object.freeze({
 
 export async function readStatus() {
   const bag = await browser.storage.local.get(STATUS_KEY)
-  return { ...INITIAL_STATUS, ...(bag?.[STATUS_KEY] ?? {}) }
+  // `Object.freeze` is shallow, so a plain spread of INITIAL_STATUS hands every caller the SAME
+  // `problems` array. One `push` anywhere and every future "fresh" status starts pre-populated
+  // with another run's errors, for the life of the worker.
+  const stored = bag?.[STATUS_KEY] ?? {}
+  return { ...INITIAL_STATUS, problems: [...INITIAL_STATUS.problems], ...stored }
 }
 
 /** Patch the status and stamp the heartbeat. Every write is a heartbeat, by construction. */
