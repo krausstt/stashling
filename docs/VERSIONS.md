@@ -19,10 +19,10 @@ contract-first coupling between apps demonstrably held as the schema grew.
 
 | Component | Version | Item | Interchange | Connector iface | Last verified |
 |---|---|---|---|---|---|
-| `@stashling/core` | 0.1.0 | v1 (defines) | v1 (defines) | v1 (defines) | 2026-09-03 |
-| `@stashling/connectors` | 0.1.0 | v1 | — | v1 | 2026-09-03 |
-| `@stashling/cli` | 0.1.0 | v1 | v1 | v1 | 2026-09-03 |
-| extension | 0.1.0 | v1 | v1 | v1 | 2026-09-03 |
+| `@stashling/core` | 0.1.0 | v1 (defines) | v1 (defines) | v1 (defines) | 2026-09-07 |
+| `@stashling/connectors` | 0.1.0 | v1 | — | v1 | 2026-09-07 |
+| `@stashling/cli` | 0.1.0 | v1 | v1 | v1 | 2026-09-07 |
+| extension | 0.1.0 | v1 | v1 | v1 | 2026-09-07 |
 
 "Last verified" means the full suite was green against that combination on that date. It is a
 statement about tests, not an intention — a compatibility claim nobody re-checks is worse than

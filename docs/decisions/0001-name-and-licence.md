@@ -61,3 +61,18 @@ both today, so this was never a distribution constraint.
 
 *Not legal advice; this is a strategy note. The reading of AGPL §13 above is the mainstream
 consensus rather than a quoted authority.*
+
+## Re-confirmed 2026-09-07
+
+Both halves of this decision were briefly contradicted in the open and then restored. Recording it
+because the evidence stays visible from outside the repository:
+
+- The GitHub repository was first created as **`krausstt/trove`**, carrying a **BSL-1.0** licence
+  file from the creation wizard. It was renamed to `krausstt/stashling` — GitHub redirects the old
+  URL indefinitely, so any link already shared keeps working — and the licence was replaced.
+- The licence correction is a **merge commit rather than a force-push**, so the BSL-1.0 commit is
+  still in history and the change is reviewable instead of erased.
+
+The name was re-checked against this ADR's own research and kept: the `@stashling` npm scope and
+the GitHub org are still free, while `trove` is still taken on npm and still collides with a
+Chrome Web Store highlights clipper — the same category as this project.

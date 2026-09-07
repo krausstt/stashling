@@ -27,8 +27,8 @@ of the code is this:
 **Works today**
 
 - `@stashling/core` — the Item contract, URL canonicalization, zone-scoped merge, source
-  precedence, generic faceting, the JSONL interchange format. Zero dependencies, 72 tests green
-  under `node --test` (measured 2026-09-03).
+  precedence, generic faceting, the JSONL interchange format. Zero dependencies, 74 tests green
+  under `node --test`; 151 across the whole suite (measured 2026-09-07).
 - Two connectors: `youtube` (Watch Later) and `makerworld` (likes, downloads, collections).
 - An extension shell: MV3 service worker, IndexedDB store, a popup that runs a scrape.
 - A CLI that parses a saved page into records, and reads and writes the interchange format.
@@ -41,7 +41,9 @@ of the code is this:
 - Liveness probing is specified and implemented per-connector, but has been exercised against
   fixtures rather than against a long-running collection. No item in my own corpus has yet been
   observed dying.
-- No CI, no published packages, no store listing. Load it unpacked or run it from source.
+- No published packages and no store listing. Load it unpacked or run it from source. (CI does
+  run now — `node --test`, the sync/manifest/fixture checks and a CLI round-trip smoke test, on
+  Node 20.x and 22.x, installing nothing.)
 
 ---
 
