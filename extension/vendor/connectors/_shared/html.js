@@ -31,13 +31,56 @@
  * `ytd-playlist-video-renderer` appears 12,804 times as a CSS scope token but only 582 times
  * as an open tag.
  *
+ * Chunks are depth-counted, so each one ENDS at its own closing tag. The obvious
+ * implementation — `html.split('<' + name).slice(1)` — is wrong in three measured ways, and the
+ * third loses data:
+ *
+ *   '<r>a</r>TRAILING JUNK'       → ['<r>a</r>TRAILING JUNK']              junk absorbed
+ *   '<r><r>in</r>out</r><r>b</r>' → ['<r>', '<r>in</r>out</r>', '<r>b</r>'] a bogus third chunk
+ *   the LAST chunk of any page    → runs to end-of-document
+ *
+ * On the committed YouTube fixture that last chunk measured 3,784 chars against ~2,800 for its
+ * siblings and contained the decoy ids, the `ytInitialData` blob and `</html>`. On the real
+ * 582-row capture it would swallow a 1,836,791-char blob, exceed the store's `MAX_RAW_BYTES`,
+ * and the last row of every scrape would silently lose its lossless copy.
+ *
  * @param {string} html
  * @param {string} elementName e.g. "ytd-playlist-video-renderer"
- * @returns {string[]} one chunk per element, each starting at its open tag
+ * @returns {string[]} one chunk per element, open tag to matching close tag
  */
 export function chunkByElement(html, elementName) {
-  const parts = String(html ?? '').split(`<${elementName}`)
-  return parts.slice(1).map((p) => `<${elementName}${p}`)
+  const src = String(html ?? '')
+  if (!elementName) return []
+
+  const tag = new RegExp(`<(/?)${escapeRe(elementName)}\\b[^>]*?(/?)>`, 'gi')
+  const out = []
+  let depth = 0
+  let start = 0
+  let m
+
+  while ((m = tag.exec(src))) {
+    const [whole, closing, selfClosing] = m
+    if (selfClosing) {
+      // A self-closing element is a complete chunk on its own, but only at depth 0 — inside an
+      // open element it is a child, not a sibling.
+      if (depth === 0) out.push(whole)
+      continue
+    }
+    if (closing) {
+      if (depth > 0) {
+        depth -= 1
+        if (depth === 0) out.push(src.slice(start, m.index + whole.length))
+      }
+      continue
+    }
+    if (depth === 0) start = m.index
+    depth += 1
+  }
+
+  // An unclosed final element still yields its chunk: a truncated page should give up the rows
+  // it does have, rather than the rows it has minus one.
+  if (depth > 0) out.push(src.slice(start))
+  return out
 }
 
 /** Split on a literal marker (a class token, a comment). Prefer `chunkByElement`. */
@@ -168,20 +211,39 @@ export function parseClock(text) {
 
 /**
  * "612K views" → 612000, "1.2M views" → 1200000, "1.234 Aufrufe" → 1234.
- * Handles both `.` and `,` as the grouping or decimal separator.
+ * Handles both `.` and `,` as the grouping or decimal separator. Returns null when there is no
+ * number to read.
+ *
+ * THE MATCH IS ANCHORED ON A DIGIT, and that is not cosmetic. `([\d.,]+)` — the obvious
+ * character class — matches a bare `'.'`, so `'.'`, `'...'` and `', ,'` all stripped to `''`,
+ * `Number('')` is `0`, and the function returned a finite **0**. `normalize` only guards with
+ * `Number.isFinite`, so that 0 was written straight into `metrics.views` — which ITEM-CONTRACT
+ * §3 forbids in as many words: an absent metric is OMITTED, never stored as zero, because
+ * absent and zero must stay distinguishable.
+ *
+ * Separator handling is likewise narrowed. Stripping every `.` and `,` turned `'1.5'` into 15.
+ * A separator run is only thousands-grouping when it actually looks like grouping.
  */
 export function parseCompactNumber(text) {
   const t = String(text ?? '').trim()
-  const m = /([\d.,]+)\s*([KMBkmb])?/.exec(t)
+  const m = /(\d[\d.,]*)\s*([KMBkmb])?/.exec(t)
   if (!m) return null
+
   const suffix = (m[2] || '').toUpperCase()
-  let numText = m[1]
+  const raw = m[1].replace(/[.,]$/, '') // a trailing separator is punctuation, not part of the number
+  let numText
+
   if (suffix) {
-    numText = numText.replace(/,/g, '.')
+    // With a suffix the separator is a decimal point: "1,2M" and "1.2M" are both 1.2 million.
+    numText = raw.replace(/,/g, '.')
+  } else if (/^\d{1,3}(?:[.,]\d{3})+$/.test(raw)) {
+    // Grouping, and only when it is shaped like grouping: 1.234 / 1,234 / 1.234.567.
+    numText = raw.replace(/[.,]/g, '')
   } else {
-    // No suffix: separators are thousands grouping ("1.234" / "1,234" are both 1234).
-    numText = numText.replace(/[.,]/g, '')
+    // Anything else keeps its meaning: "1.5" is one and a half, not fifteen.
+    numText = raw.replace(/,/g, '.')
   }
+
   const n = Number(numText)
   if (!Number.isFinite(n)) return null
   const mult = suffix === 'K' ? 1e3 : suffix === 'M' ? 1e6 : suffix === 'B' ? 1e9 : 1

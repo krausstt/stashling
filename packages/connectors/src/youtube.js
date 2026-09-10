@@ -1,4 +1,4 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
+﻿/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
@@ -37,7 +37,7 @@ import {
   parseCompactNumber, firstOf,
 } from './_shared/html.js'
 
-const VERSION = '1.0.0'
+const VERSION = '1.1.0'
 
 /** The element the host must scope to. 582 open tags, 582 close tags, perfectly balanced. */
 const ROW_ELEMENT = 'ytd-playlist-video-renderer'

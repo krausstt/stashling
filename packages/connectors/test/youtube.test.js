@@ -84,6 +84,60 @@ test('chunk count is driven by the open tag, not the CSS scope token', () => {
   assert.ok(substring > openTags, 'the fixture reproduces the class-token noise')
 })
 
+test('a chunk ENDS at its own closing tag — the last row does not run to EOF', async () => {
+  // The split-based chunker gave the last chunk everything to end-of-document. Measured on this
+  // fixture: 3,784 chars against ~2,800 for its siblings, carrying the decoy ids, the
+  // ytInitialData blob and </html>. On the real 582-row page that is a 1.8 MB blob attached to
+  // the last row, which then exceeds the store's MAX_RAW_BYTES and loses its lossless copy.
+  const { chunkByElement } = await import('../src/_shared/html.js')
+  const chunks = chunkByElement(html, 'ytd-playlist-video-renderer')
+  const last = chunks.at(-1)
+
+  assert.ok(last.trimEnd().endsWith('</ytd-playlist-video-renderer>'), 'chunk ends at its close tag')
+  assert.equal(/decoy0000/.test(last), false, 'no decoy leaked into the last row')
+  assert.equal(last.includes('ytInitialData'), false)
+  assert.equal(last.includes('</html>'), false)
+
+  const sizes = chunks.map((c) => c.length)
+  const median = [...sizes].sort((a, b) => a - b)[Math.floor(sizes.length / 2)]
+  assert.ok(last.length < median * 2, `last chunk ${last.length} is an outlier vs median ${median}`)
+})
+
+test('chunkByElement handles trailing junk, nesting and self-closing tags', async () => {
+  const { chunkByElement } = await import('../src/_shared/html.js')
+  assert.deepEqual(chunkByElement('<r>a</r>TRAILING JUNK', 'r'), ['<r>a</r>'])
+  assert.deepEqual(chunkByElement('<r><r>in</r>out</r><r>b</r>', 'r'),
+    ['<r><r>in</r>out</r>', '<r>b</r>'], 'a nested row is one chunk, not two and a fragment')
+  assert.deepEqual(chunkByElement('<r a=1 />x<r>b</r>', 'r'), ['<r a=1 />', '<r>b</r>'])
+  assert.deepEqual(chunkByElement('<r>unclosed', 'r'), ['<r>unclosed'], 'a truncated page keeps its rows')
+  assert.deepEqual(chunkByElement('', 'r'), [])
+  assert.deepEqual(chunkByElement('<rowdy>x</rowdy>', 'r'), [], 'the element NAME must match wholly')
+})
+
+test('open and close tags are balanced across the fixture', () => {
+  // CONNECTOR-GUIDE tells every author to check this by hand; nothing asserted it.
+  const open = (html.match(/<ytd-playlist-video-renderer\b/g) ?? []).length
+  const close = (html.match(/<\/ytd-playlist-video-renderer>/g) ?? []).length
+  assert.equal(open, close)
+  assert.equal(raws.length, open)
+})
+
+test('parseCompactNumber returns null for junk, never a finite 0', async () => {
+  // A bare '.' matched `([\d.,]+)`, stripped to '', and Number('') is 0 — so `metrics.views`
+  // was written as 0 for unparseable text. ITEM-CONTRACT §3: absent is omitted, never zero.
+  const { parseCompactNumber } = await import('../src/_shared/html.js')
+  for (const junk of ['.', '...', ', ,', '', '   ', 'views', null, undefined]) {
+    assert.equal(parseCompactNumber(junk), null, `${JSON.stringify(junk)} must be null`)
+  }
+  assert.equal(parseCompactNumber('1.5'), 2, 'a decimal is a decimal, not stripped grouping')
+  assert.equal(parseCompactNumber('1.2M views'), 1200000)
+  assert.equal(parseCompactNumber('1,2M'), 1200000)
+  assert.equal(parseCompactNumber('1,234 views'), 1234)
+  assert.equal(parseCompactNumber('1.234 Aufrufe'), 1234)
+  assert.equal(parseCompactNumber('612K views'), 612000)
+  assert.equal(parseCompactNumber('5 views'), 5)
+})
+
 // ── coverage ──────────────────────────────────────────────────────────────────
 
 test('COVERAGE: id, title and index are 100%', () => {

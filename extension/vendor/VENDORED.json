@@ -2,14 +2,14 @@
   "schema": 1,
   "generator": "scripts/sync-extension.mjs",
   "note": "Generated. Do not edit by hand — run `npm run sync`. `commit` and `generatedAt` are provenance only and are excluded from `--check`.",
-  "commit": null,
-  "generatedAt": "2026-09-04T01:00:26.344Z",
+  "commit": "7fd65e74dcb57d2746279d168f9dca6f260f2ef5",
+  "generatedAt": "2026-09-10T17:39:56.617Z",
   "files": [
     {
       "vendor": "connectors/_shared/html.js",
       "from": "packages/connectors/src/_shared/html.js",
-      "bytes": 8693,
-      "sha256": "0c6a7df5234708e6c09eaccdd01eede5a063ca7597b8d7f54b36416d8833871e",
+      "bytes": 11453,
+      "sha256": "0108e8d8f3bc88ad3ed6c2537435e3d9a7b3f0fd4624a56e9fdbd085a449877e",
       "rewritten": false
     },
     {
@@ -29,8 +29,8 @@
     {
       "vendor": "connectors/youtube.js",
       "from": "packages/connectors/src/youtube.js",
-      "bytes": 28558,
-      "sha256": "c8a9a5c44ec1b7faa37759a9d6644c5475be1ecc465571c5e47b9ffe92a86e4e",
+      "bytes": 28561,
+      "sha256": "804406b0f6ff4f05a27cf44eecab15740b329e665260dfc3edd81ceb77ed9472",
       "rewritten": true
     },
     {
