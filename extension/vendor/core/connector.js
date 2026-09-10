@@ -73,6 +73,19 @@ export function validateConnector(c) {
       if (!l?.id) p.push(`lists[${i}]: id is required`)
       if (!l?.label) p.push(`lists[${i}]: label is required`)
       if (typeof l?.match !== 'function') p.push(`lists[${i}]: match(url) → boolean is required`)
+      if (l?.instanceId !== undefined && typeof l.instanceId !== 'function') {
+        p.push(`lists[${i}]: instanceId must be a function or absent`)
+      }
+      // `id` names the FAMILY; `instanceId(url)` names the particular list an Item joins. Every
+      // host reads `instanceId` and falls back to `id`, so a connector that spells it anything
+      // else files every instance under the family name and nothing fails — the fallback is
+      // legitimate. MakerWorld shipped `resolveId` and every collection landed under
+      // `collection` instead of `collection:<id>`.
+      for (const wrong of ['resolveId', 'idFor', 'listId', 'instance']) {
+        if (l && typeof l[wrong] === 'function') {
+          p.push(`lists[${i}]: "${wrong}" is not read by any host — the member is called instanceId`)
+        }
+      }
     })
   }
 

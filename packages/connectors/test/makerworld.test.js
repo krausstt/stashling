@@ -68,6 +68,26 @@ test('listing: a numeric from-token becomes collection:{id}', () => {
   assert.equal(byModel.get('9000004').list, 'collection:10129261')
 })
 
+test('a collection is filed under its OWN id, not the family name', async () => {
+  // Every host reads `lists[].instanceId` and falls back to `lists[].id`. This connector spelled
+  // it `resolveId`, so the fallback fired and every collection landed under the family name
+  // `collection` — silently, because falling back is legitimate behaviour.
+  const { listFor } = await import('../src/index.js')
+  const url = 'https://makerworld.com/en/collections/10129261'
+  const list = listFor(mw, url)
+  assert.ok(list, 'a collection URL resolves to a list')
+  assert.equal(typeof list.instanceId, 'function', 'the member every host actually reads')
+  assert.equal(list.instanceId(url), 'collection:10129261')
+  assert.notEqual(list.instanceId(url), list.id, 'the instance is not the family')
+
+  // And the interface now refuses the misspelling outright.
+  const problems = validateConnector({
+    ...mw,
+    lists: [{ id: 'x', label: 'X', match: () => true, resolveId: () => 'x:1' }],
+  })
+  assert.ok(problems.some((p) => p.includes('not read by any host')))
+})
+
 test('listing: a card with no data-trackid is skipped, not half-parsed', () => {
   assert.ok(listingHtml.includes('mw-css-skeleton'), 'the fixture contains a skeleton card')
   assert.equal(cards.some((c) => !c.modelId), false)

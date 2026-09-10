@@ -574,7 +574,7 @@ export default defineConnector({
 
   /**
    * Three lists, one of which is a family. `collection` matches any collection page and
-   * `resolveId` produces the per-collection id, because a user has many collections and the
+   * `instanceId` produces the per-collection id, because a user has many collections and the
    * trackid already carries which one — the list id `collection:{id}` is data, not a constant.
    */
   lists: [
@@ -582,7 +582,7 @@ export default defineConnector({
       id: 'likes',
       label: 'Likes',
       match: (url) => /\/@[^/]+\/likes\b/i.test(String(url ?? '')),
-      resolveId: () => 'likes',
+      instanceId: () => 'likes',
     },
     {
       // Not a wishlist — a printed-approximation. A model you downloaded is strong evidence
@@ -591,13 +591,13 @@ export default defineConnector({
       id: 'downloads',
       label: 'Downloads',
       match: (url) => /\/@[^/]+\/downloads\b/i.test(String(url ?? '')),
-      resolveId: () => 'downloads',
+      instanceId: () => 'downloads',
     },
     {
       id: 'collection',
       label: 'Collection',
       match: (url) => /\/collections\/\d+/i.test(String(url ?? '')),
-      resolveId: (url) => {
+      instanceId: (url) => {
         const m = /\/collections\/(\d+)/.exec(String(url ?? ''))
         return m ? `collection:${m[1]}` : null
       },

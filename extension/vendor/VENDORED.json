@@ -2,8 +2,8 @@
   "schema": 1,
   "generator": "scripts/sync-extension.mjs",
   "note": "Generated. Do not edit by hand — run `npm run sync`. `commit` and `generatedAt` are provenance only and are excluded from `--check`.",
-  "commit": "7fd65e74dcb57d2746279d168f9dca6f260f2ef5",
-  "generatedAt": "2026-09-10T17:39:56.617Z",
+  "commit": "b0639a324eaa3d36bb0ea34b3ab699e5523f97e8",
+  "generatedAt": "2026-09-10T17:45:29.271Z",
   "files": [
     {
       "vendor": "connectors/_shared/html.js",
@@ -22,8 +22,8 @@
     {
       "vendor": "connectors/makerworld.js",
       "from": "packages/connectors/src/makerworld.js",
-      "bytes": 31741,
-      "sha256": "e7233500a2ae749661b7d9bdf71076a66b52397fe2cdfe04cb581b7027733667",
+      "bytes": 31745,
+      "sha256": "bff12cc4f11564377ee94b2350f90a80cc966994cee5efab6e70a5ee45b22768",
       "rewritten": true
     },
     {
@@ -36,8 +36,8 @@
     {
       "vendor": "core/connector.js",
       "from": "packages/core/src/connector.js",
-      "bytes": 6524,
-      "sha256": "beebd1fea90c76e36a4c3b74a20416c4706642d82a72ca138dc29dbb9f7d708a",
+      "bytes": 7355,
+      "sha256": "cd158c2f5cb809e93948af9488b47d99d5871814dab115533589a11fa82735a3",
       "rewritten": false
     },
     {
