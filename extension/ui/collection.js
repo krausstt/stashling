@@ -12,6 +12,9 @@
  */
 
 import { applyFilters, facetRange, termCounts, readPath } from '../vendor/core/index.js'
+// The security boundary lives in its own module so it can be tested; see render-safety.js for
+// why every interpolation on this page is escaped, including the ones that "cannot" be markup.
+import { escapeHtml, escapeAttr, safeHref, safeLivenessClass } from './render-safety.js'
 
 if (!globalThis.browser) globalThis.browser = chrome
 
@@ -125,40 +128,6 @@ function onFilterChange(event) {
 
 const round = (n) => (Number.isInteger(n) ? n : Math.round(n * 10) / 10)
 
-/**
- * EVERY interpolation below is escaped, including the ones whose values "cannot" contain markup.
- *
- * Items reach this page from two places: a connector, and an imported interchange file. The
- * second is not trusted input — `mergeBundle` takes the records as they come, so a hand-edited
- * or hostile .jsonl can put any string in any field. `liveness.state` and `order` were both
- * interpolated raw here, and `liveness.state` lands inside a `class="..."` attribute, so a value
- * like `x"><img src=https://evil/?c=1>` injects an element.
- *
- * Manifest V3's default CSP (`script-src 'self'`) does block the script half of that — no
- * `javascript:` URL, no inline handler. It does NOT restrict `img-src`, so the injected element
- * still fires a request, which quietly breaks the one promise this extension makes: that
- * nothing leaves your machine. Escaping at the sink costs nothing and does not depend on a CSP
- * staying the way it is.
- */
-const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => (
-  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
-const escapeAttr = escapeHtml
-
-/**
- * Only http(s) survives into an `href`.
- *
- * CSP blocks `javascript:` today, but a link is also the one place a hostile file could point a
- * click somewhere the user did not choose. Anything else renders as inert text.
- */
-function safeHref(url) {
-  try {
-    const parsed = new URL(String(url), 'https://invalid.invalid/')
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : null
-  } catch {
-    return null
-  }
-}
-
 function matchesSearch(item, query) {
   if (!query) return true
   const q = query.toLowerCase()
@@ -186,7 +155,7 @@ function render() {
     // A liveness value from a hostile file is not one of the four states; render it as the
     // literal string it is, and never let it choose the class.
     const state = String(item.liveness?.state ?? 'unknown')
-    const knownState = ['live', 'gone', 'restricted', 'unknown'].includes(state) ? state : 'unknown'
+    const knownState = safeLivenessClass(state)
 
     tr.innerHTML = `
       <td class="num">${escapeHtml(order)}</td>

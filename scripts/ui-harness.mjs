@@ -29,7 +29,7 @@
  */
 import http from 'node:http'
 import { readFileSync } from 'node:fs'
-import { extname, join, normalize } from 'node:path'
+import { extname, join, normalize, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const REPO = fileURLToPath(new URL('..', import.meta.url))
@@ -144,8 +144,12 @@ const server = http.createServer((req, res) => {
   }
 
   if (path === '/') path = '/ui/collection.html'
+  // The separator matters: a bare `startsWith(ROOT)` also admits a SIBLING directory whose name
+  // merely begins with the root's — `/../extension-evil/x.js` escapes and is served. This is a
+  // dev tool, but it is a dev tool that serves whatever it is pointed at.
   const file = normalize(join(ROOT, path))
-  if (!file.startsWith(normalize(ROOT))) { res.writeHead(403).end('no'); return }
+  const root = normalize(ROOT).replace(new RegExp(`${sep === '\\' ? '\\\\' : sep}+$`), '')
+  if (file !== root && !file.startsWith(root + sep)) { res.writeHead(403).end('no'); return }
 
   let body
   try {

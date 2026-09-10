@@ -90,7 +90,9 @@ async function collect({ tabId, url, connectorId, listId }) {
   const resolvedList = listId ?? list?.instanceId?.(url) ?? list?.id ?? null
 
   await store.resetStatus()
-  await beat({ running: true, phase: 'scanning', connector: connector.id, list: resolvedList, lastError: null })
+  // Key names must match INITIAL_STATUS, or the declared fields stay null forever while
+  // undeclared ones appear beside them and no reader can tell which to trust.
+  await beat({ running: true, phase: 'scanning', connectorId: connector.id, listId: resolvedList, lastError: null })
   await startKeepalive()
 
   try {
@@ -144,7 +146,10 @@ async function collect({ tabId, url, connectorId, listId }) {
       stoppedBecause: page.stoppedBecause,
       added: written?.added ?? 0,
       merged: written?.merged ?? 0,
-      problems: problems.length,
+      // `problems` is declared as an array; writing a count into it was a live type violation.
+      // The array is capped because the status is re-read and re-written on every heartbeat.
+      problems: problems.slice(0, 20),
+      problemCount: problems.length,
     })
 
     return {

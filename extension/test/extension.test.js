@@ -16,7 +16,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-import { installIndexedDB, installBrowser, send } from './_harness.js'
+// The harness lives OUTSIDE test/ on purpose: `node --test` treats every .js under a directory
+// named `test` as a test file, so a helper there is counted as a passing test that asserts
+// nothing — quietly inflating the suite by one and making the reported count a small lie.
+import { installIndexedDB, installBrowser, send } from '../_testing/harness.js'
 
 const FIXTURE = fileURLToPath(new URL('../../fixtures/youtube/watch-later.fixture.html', import.meta.url))
 const html = readFileSync(FIXTURE, 'utf8')
@@ -101,6 +104,73 @@ test('an oversize raw is dropped and recorded, never truncated', async () => {
   const raw = await store.readRaw('youtube:vidCCCCCCCC')
   assert.equal(raw.omitted, 'oversize')
   assert.equal(raw.body, undefined, 'a half-blob would be re-shredded as if it were whole')
+})
+
+test('AN OVERSIZE CAPTURE NEVER DESTROYS A GOOD BODY ALREADY STORED', async () => {
+  // `putMany` is a blind put on `id`. Writing the bare "omitted" marker overwrote a lossless
+  // copy that was already safely stored, so a page that grew past the cap deleted the last good
+  // capture of itself — in the store whose docstring calls the raw the source of truth.
+  await fresh()
+  const { mergeItems, createItem } = await import('../vendor/core/index.js')
+  const mk = (body) => createItem({
+    source: 'youtube', sourceId: 'vidFFFFFFFF', kind: 'video', title: 't',
+    raw: { body, contentType: 'text/html', capturedAt: 1 },
+  })
+
+  await store.upsertItems([mk('<p>the good body</p>')], { mergeItems })
+  await store.upsertItems([mk('y'.repeat(store.MAX_RAW_BYTES + 1))], { mergeItems })
+
+  const raw = await store.readRaw('youtube:vidFFFFFFFF')
+  assert.equal(raw.body, '<p>the good body</p>', 'the lossless copy survived the oversize capture')
+  assert.equal(raw.lastOmitted.bytes, store.MAX_RAW_BYTES + 1, 'and the skipped capture is recorded')
+
+  // With nothing stored yet there is nothing to lose, so the marker stands alone.
+  await store.upsertItems([createItem({
+    source: 'youtube', sourceId: 'vidGGGGGGGG', kind: 'video', title: 't',
+    raw: { body: 'z'.repeat(store.MAX_RAW_BYTES + 1), contentType: 'text/html' },
+  })], { mergeItems })
+  assert.equal((await store.readRaw('youtube:vidGGGGGGGG')).omitted, 'oversize')
+})
+
+test('an import preserves the raw history a scrape accumulated', async () => {
+  // `putItems` did not read the existing raws, so an interchange import reset supersededHashes
+  // to [] for every item in the file — history `upsertItems` maintains.
+  await fresh()
+  const { mergeItems, createItem, toJsonl } = await import('../vendor/core/index.js')
+  const mk = (body) => createItem({
+    source: 'youtube', sourceId: 'vidHHHHHHHH', kind: 'video', title: 't',
+    raw: { body, contentType: 'text/html', capturedAt: 1 },
+  })
+
+  for (const body of ['<p>v1</p>', '<p>v2</p>', '<p>v3</p>']) {
+    await store.upsertItems([mk(body)], { mergeItems })
+  }
+  const beforeImport = await store.readRaw('youtube:vidHHHHHHHH')
+  assert.equal(beforeImport.supersededHashes.length, 2)
+
+  const result = await send('importFile', {
+    text: toJsonl({ items: [mk('<p>v4</p>')], meta: { generation: 99, lineage: 'elsewhere' } }),
+    name: 'shared.jsonl',
+  })
+  assert.equal(result.ok, true)
+
+  const afterImport = await store.readRaw('youtube:vidHHHHHHHH')
+  assert.equal(afterImport.supersededHashes.length, 3, 'the import added to the history, not wiped it')
+  assert.ok(afterImport.supersededHashes.includes(beforeImport.hash))
+})
+
+test('the two write paths agree about what a raw record looks like', async () => {
+  // upsertItems and putItems each had their own copy of the history rule and disagreed. One
+  // shared `reconcileRaw` is the fix; this asserts they stay in step.
+  const prior = { id: 'x', body: 'old', hash: 'sha256-old', supersededHashes: ['sha256-older'] }
+  const incoming = { id: 'x', body: 'new', hash: 'sha256-new', supersededHashes: [] }
+  const reconciled = store.reconcileRaw(prior, incoming)
+  assert.deepEqual(reconciled.supersededHashes, ['sha256-old', 'sha256-older'])
+  assert.equal(reconciled.body, 'new')
+
+  // An unchanged body does not grow the history.
+  assert.deepEqual(store.reconcileRaw(prior, { ...incoming, hash: 'sha256-old' }).supersededHashes,
+    ['sha256-older'])
 })
 
 test('the generation survives a wipe, so a stale file cannot overwrite a fresh collection', async () => {

@@ -256,6 +256,45 @@ async function splitRaw(item) {
 }
 
 /**
+ * Decide what the `raws` row should become, given what is already stored.
+ *
+ * ONE definition, used by both write paths. The first version of this had the logic inline in
+ * `upsertItems` and a second, simpler version in `putItems`, and they disagreed: an interchange
+ * import wiped the hash history that a scrape maintained. Two implementations of a merge rule is
+ * how the `user`-zone deletion bug happened in the first place, and it is not repeatable here.
+ *
+ * The two rules:
+ *
+ * 1. AN OVERSIZE CAPTURE NEVER DESTROYS A GOOD BODY. `putMany` is a blind `put` on `id`, so
+ *    writing the bare "omitted" marker overwrote a lossless copy that was already safely stored
+ *    — a page that grew past the cap deleted the last good capture of itself. The marker is
+ *    recorded ON the existing row instead, so §7's "the raw is the source of truth for export"
+ *    keeps holding. With nothing stored yet there is nothing to lose and the marker stands alone.
+ * 2. Displaced hashes accumulate, bounded. Full history would need a compound key; keeping the
+ *    current body plus the hashes it displaced answers "did the source change under me?" without
+ *    unbounded growth. §7's "previous kept" is only partly honoured, and the README says so.
+ */
+export function reconcileRaw(priorRaw, incoming) {
+  if (incoming.omitted) {
+    if (!priorRaw || priorRaw.omitted) return incoming
+    return {
+      ...priorRaw,
+      lastOmitted: {
+        bytes: incoming.bytes,
+        limit: incoming.limit,
+        capturedAt: incoming.capturedAt,
+        connectorVersion: incoming.connectorVersion,
+      },
+    }
+  }
+
+  const history = priorRaw?.hash && priorRaw.hash !== incoming.hash
+    ? [priorRaw.hash, ...(priorRaw.supersededHashes ?? [])].slice(0, MAX_RAW_HISTORY)
+    : (priorRaw?.supersededHashes ?? [])
+  return { ...incoming, supersededHashes: history }
+}
+
+/**
  * Merge and write items in batches.
  *
  * The merge itself is core's — this module must never invent a merge rule, because the zone
@@ -303,25 +342,9 @@ export async function upsertItems(incoming, opts = {}) {
       else added += 1
 
       if (split.rawRecord) {
-        if (split.rawRecord.omitted) {
-          // The marker is WRITTEN, not merely counted. Without a row here there is no way to
-          // tell "this connector captured no raw" from "a raw was captured and dropped for
-          // size", and the second one is a fact about your collection that you want to be able
-          // to find later. The comment on MAX_RAW_BYTES promises exactly this.
-          rawRecords.push(split.rawRecord)
-          rawsOmitted += 1
-        } else {
-          const priorRaw = existingRaws.get(item.id)
-          // Full raw history would need a compound key; v1 keeps the CURRENT body plus the
-          // hashes it displaced, which is enough to answer "did the source change under me?"
-          // without unbounded growth. ITEM-CONTRACT §7's "previous kept" is only partly
-          // honoured here and the README says so.
-          const history = priorRaw?.hash && priorRaw.hash !== split.rawRecord.hash
-            ? [priorRaw.hash, ...(priorRaw.supersededHashes ?? [])].slice(0, MAX_RAW_HISTORY)
-            : (priorRaw?.supersededHashes ?? [])
-          rawRecords.push({ ...split.rawRecord, supersededHashes: history })
-          rawsStored += 1
-        }
+        rawRecords.push(reconcileRaw(existingRaws.get(item.id), split.rawRecord))
+        if (split.rawRecord.omitted) rawsOmitted += 1
+        else rawsStored += 1
       }
     }
 
@@ -358,13 +381,16 @@ export async function putItems(items, opts = {}) {
     const batch = items.slice(offset, offset + flushEvery)
     const itemRecords = []
     const rawRecords = []
+    // Read what is already there, exactly as `upsertItems` does. Skipping this is what made an
+    // import wipe the raw history a scrape had accumulated.
+    const existingRaws = await getMany(STORES.raws, batch.map((it) => it?.id).filter(Boolean))
 
     for (const item of batch) {
       if (!item?.id) continue
       const split = await splitRaw(item)
       itemRecords.push(split.item)
       if (split.rawRecord) {
-        rawRecords.push(split.rawRecord)
+        rawRecords.push(reconcileRaw(existingRaws.get(item.id), split.rawRecord))
         if (split.rawRecord.omitted) rawsOmitted += 1
         else rawsStored += 1
       }
