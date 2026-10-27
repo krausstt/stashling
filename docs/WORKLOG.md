@@ -7,6 +7,11 @@ next, and what the next step depends on.
 This is a working document, not a spec. The specs are [`ITEM-CONTRACT.md`](./ITEM-CONTRACT.md),
 [`VERSIONS.md`](./VERSIONS.md) and the [decision records](./decisions/).
 
+> **Latest state: [`HANDOVER.md`](./HANDOVER.md) (2026-10-27).** Since the findings below were
+> written: `77496e9` added an edge-linux CDP driver (suite now **197** tests), its provisioning
+> scripts are staged but uncommitted, five commits are unpushed, and ADR-0007 is still marked
+> `proposed`. The handover lists what to do about each.
+
 ---
 
 ## Where this is going
