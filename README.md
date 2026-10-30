@@ -288,6 +288,8 @@ than a plugin runtime, and worth being honest about).
 | [`docs/decisions/`](./docs/decisions/) | The decision records, including the remote-code line |
 | [`docs/BLOG.md`](./docs/BLOG.md) | Why the architecture looks like this: three tools that converged |
 | [`CONTRIBUTING.md`](./CONTRIBUTING.md) | How to contribute; a new connector is the best first PR |
+| [`hosts/edge-linux/GUIDE.md`](./hosts/edge-linux/GUIDE.md) | Running an always-on collector box (Ubuntu Server 24.04) |
+| [`docs/HANDOVER.md`](./docs/HANDOVER.md) · [`docs/WORKLOG.md`](./docs/WORKLOG.md) | **Picking up development?** Current state, what is in flight, what is next |
 
 **Privacy note for contributors:** committed fixtures are hand-authored synthetic markup with
 invented ids, titles and names. Real saved pages are used to *measure* coverage and are never

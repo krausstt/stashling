@@ -1,7 +1,8 @@
 # 0007 — Collectors live at the edge; the container is an optional hub, never the core
 
-**Status:** proposed, 2026-09-10 — supersedes nothing, but it settles a question ADR-0002 and
-`ACQUISITION-STRATEGIES.md` only answered by implication.
+**Status:** accepted, 2026-10-30, by the project owner (proposed 2026-09-10) — supersedes
+nothing, but it settles a question ADR-0002 and `ACQUISITION-STRATEGIES.md` only answered by
+implication.
 
 ## Context
 

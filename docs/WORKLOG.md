@@ -7,10 +7,10 @@ next, and what the next step depends on.
 This is a working document, not a spec. The specs are [`ITEM-CONTRACT.md`](./ITEM-CONTRACT.md),
 [`VERSIONS.md`](./VERSIONS.md) and the [decision records](./decisions/).
 
-> **Latest state: [`HANDOVER.md`](./HANDOVER.md) (2026-10-27).** Since the findings below were
-> written: `77496e9` added an edge-linux CDP driver (suite now **197** tests), its provisioning
-> scripts are staged but uncommitted, five commits are unpushed, and ADR-0007 is still marked
-> `proposed`. The handover lists what to do about each.
+> **Latest state: [`HANDOVER.md`](./HANDOVER.md).** Since the findings below were written: an
+> edge-linux host exists (CDP driver plus provisioning scripts, reviewed and fixed 2026-10-30, see
+> [`hosts/edge-linux/GUIDE.md`](../hosts/edge-linux/GUIDE.md)), ADR-0007 is **accepted**, and
+> the suite is **207** tests.
 
 ---
 
@@ -40,7 +40,7 @@ missing something another already solved.
 |---|---|---|---|
 | 0 | Extension made to actually work | **done** (`6ea0b68`) | 168 tests, first extension tests, UI harness |
 | 1 | Recon: map 4 repos onto the contract, review `6ea0b68`, gather hub evidence | **in progress** | this file filled in + ADR-0007 + migration plan |
-| 2 | Decide the topology: edge vs hub, and what a container is for | pending phase 1 | ADR-0007 accepted |
+| 2 | Decide the topology: edge vs hub, and what a container is for | **done** — ADR-0007 accepted 2026-10-30 | ADR-0007 accepted |
 | 3 | YouTube: resolve the duplicate implementation | pending phase 1 | one connector, one fixture corpus, the other repo archived or reduced |
 | 4 | Contract gaps the connectors expose | pending phase 1 | contract v1.1: create-vs-enrich, cohort annotations, sidecars |
 | 5 | Kleinanzeigen connector | pending phase 4 | connector + `passive-capture` + `detail-fetch` hosts |
