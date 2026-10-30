@@ -48,10 +48,35 @@ jobs:
       - name: Syntax check everything the test runner does not import
         run: |
           set -e
-          find extension scripts packages -name '*.js' -o -name '*.mjs' \
+          find extension scripts packages hosts -name '*.js' -o -name '*.mjs' \
             | grep -v node_modules \
             | xargs -n1 node --check
           echo "all files parse"
+
+      # The shell scripts under hosts/ are the only non-JavaScript code in the repo, they run as
+      # root on a machine holding live session cookies, and they are the one thing a contributor
+      # on Windows cannot check locally — there is no bash there to check them with. So this job
+      # is where they get checked. Both tools are preinstalled on the runner, so it still adds
+      # no dependency to the project.
+      - name: Shell scripts parse and lint
+        run: |
+          set -e
+          find hosts -name '*.sh' -print0 | xargs -0 -n1 bash -n
+          echo "all shell scripts parse"
+          shellcheck --severity=warning hosts/edge-linux/*.sh
+          echo "shellcheck clean"
+
+      - name: Shell scripts are executable, and LF
+        run: |
+          set -e
+          fail=0
+          for f in $(find hosts -name '*.sh'); do
+            [ -x "$f" ] || { echo "$f is not executable — git update-index --chmod=+x $f"; fail=1; }
+            # A CRLF script fails on Linux as "bad interpreter: /usr/bin/env bash^M", which names
+            # the shebang and not the line endings, and sends you looking in the wrong place.
+            if grep -qU "$(printf '\r')" "$f"; then echo "$f has CRLF line endings"; fail=1; fi
+          done
+          exit $fail
 
       - name: CLI smoke test
         run: |

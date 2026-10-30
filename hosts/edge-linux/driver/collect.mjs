@@ -37,12 +37,23 @@
  * state. Treating them as a fix for this is how you stop looking for the real cause.
  */
 
-import { mkdirSync, writeFileSync, readFileSync, openSync, closeSync, unlinkSync } from 'node:fs'
+import {
+  mkdirSync, writeFileSync, readFileSync, openSync, closeSync, unlinkSync, realpathSync,
+} from 'node:fs'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { Cdp, discover, evaluate } from './cdp.mjs'
 
 const DEFAULT_CONFIG = '/etc/stashling/stashling.json'
+const DEFAULT_EXTENSION_DIR = '/opt/stashling/extension'
+
+/**
+ * Longer than the collect unit's TimeoutStartSec (20 min). A lock older than that cannot belong to
+ * a live sweep: systemd would already have killed it — and a killed process never runs `finally`.
+ */
+const DEFAULT_STALE_LOCK_MS = 25 * 60_000
 
 /** Paths a platform sends you to when the session is gone or a challenge is in the way. */
 const DEFAULT_BLOCKED = [
@@ -93,6 +104,9 @@ export function loadConfig(file) {
   }
   return {
     exportDir: null,
+    extensionDir: DEFAULT_EXTENSION_DIR,
+    extensionId: null,
+    staleLockMs: DEFAULT_STALE_LOCK_MS,
     stateDir: '/var/lib/stashling/state',
     betweenTargetsMs: [20_000, 90_000],
     blockedUrlPatterns: DEFAULT_BLOCKED,
@@ -104,27 +118,68 @@ export function loadConfig(file) {
 
 // ── a lock, because two sweeps at once is two Chromes fighting over one active tab ──────────
 
-function takeLock(stateDir) {
+/** Is that pid a running process? `kill(pid, 0)` delivers nothing; it only asks. */
+function pidIsAlive(pid) {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (err) {
+    // EPERM: it exists and belongs to someone else — alive. ESRCH: no such process.
+    return err?.code === 'EPERM'
+  }
+}
+
+/**
+ * May this lock be taken over? PURE, so the decision is testable without killing anything.
+ *
+ * WHY THIS EXISTS. The lock is released in a `finally`, and a process that systemd kills at
+ * `TimeoutStartSec` never runs its `finally`. The first version of this driver therefore had a
+ * failure mode worse than any it guarded against: one hung sweep left `collect.lock` behind —
+ * across reboots, since it lives in /var/lib — and every later tick logged "already running",
+ * exited 0, and kept the unit green while nothing was ever collected again.
+ *
+ * Stale if the recorded pid is gone, OR the lock is older than any live sweep could be. The age
+ * test covers pid reuse after a reboot, where the number may now belong to an unrelated process.
+ * An unparseable lock is stale: something that cannot say who holds it holds nothing.
+ */
+export function lockIsStale(text, { now = Date.now(), maxAgeMs = DEFAULT_STALE_LOCK_MS, isAlive = pidIsAlive } = {}) {
+  const pid = Number.parseInt((/\bpid=(\d+)/.exec(String(text ?? '')) ?? [])[1], 10)
+  const started = Date.parse((/\bstarted=(\S+)/.exec(String(text ?? '')) ?? [])[1])
+  if (!Number.isInteger(pid) || pid <= 0 || !Number.isFinite(started)) return { stale: true, why: 'unparseable' }
+  if (now - started > maxAgeMs) return { stale: true, why: `older than ${Math.round(maxAgeMs / 60_000)} min` }
+  if (!isAlive(pid)) return { stale: true, why: `pid ${pid} is not running` }
+  return { stale: false, why: `pid ${pid} is running` }
+}
+
+function takeLock(stateDir, { maxAgeMs = DEFAULT_STALE_LOCK_MS } = {}) {
   mkdirSync(stateDir, { recursive: true })
   const file = path.join(stateDir, 'collect.lock')
-  let fd
-  try {
-    fd = openSync(file, 'wx')           // O_CREAT|O_EXCL — atomic
-  } catch (err) {
-    if (err?.code === 'EEXIST') {
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    let fd
+    try {
+      fd = openSync(file, 'wx')           // O_CREAT|O_EXCL — atomic
+    } catch (err) {
+      if (err?.code !== 'EEXIST') throw err
       let held = ''
-      try { held = readFileSync(file, 'utf8').trim() } catch { /* racing release */ }
-      return { ok: false, file, held }
+      try { held = readFileSync(file, 'utf8').trim() } catch { continue /* released while we looked */ }
+      const verdict = lockIsStale(held, { maxAgeMs })
+      if (!verdict.stale || attempt > 0) return { ok: false, file, held }
+      // Said out loud, because reclaiming a lock is exactly the event you want in the journal if
+      // the cause turns out to be a sweep that keeps hanging.
+      warn(`reclaiming a stale lock (${verdict.why}): ${held}`)
+      try { unlinkSync(file) } catch { /* someone else reclaimed it first */ }
+      continue
     }
-    throw err
+    writeFileSync(fd, `pid=${process.pid} started=${new Date().toISOString()}\n`)
+    closeSync(fd)
+    return {
+      ok: true,
+      file,
+      release() { try { unlinkSync(file) } catch { /* already gone */ } },
+    }
   }
-  writeFileSync(fd, `pid=${process.pid} started=${new Date().toISOString()}\n`)
-  closeSync(fd)
-  return {
-    ok: true,
-    file,
-    release() { try { unlinkSync(file) } catch { /* already gone */ } },
-  }
+  return { ok: false, file, held: 'contended' }
 }
 
 // ── talking to the extension ────────────────────────────────────────────────────────────────
@@ -144,6 +199,47 @@ export function extensionIdFrom(targets, { swPath = '/sw.js' } = {}) {
   return m ? m[1] : null
 }
 
+/**
+ * Chrome's id for an UNPACKED extension: SHA-256 of its absolute path, first 16 bytes, hex,
+ * each hex digit 0-f mapped onto the letters a-p.
+ *
+ * WHY THE ID IS DERIVED AND NOT READ OFF A RUNNING WORKER. An MV3 service worker is terminated
+ * after ~30 s idle (sw.js says so in its own header), and the keepalive alarm only runs during a
+ * collect. The timer fires every half hour, so the worker is almost always ASLEEP when a sweep
+ * starts — and a sleeping worker has no DevTools target. The first version of this driver read
+ * the id only from that target, so "asleep" and "not installed" were the same answer, and most
+ * sweeps would have failed with "the service worker is not running". The path does not sleep.
+ *
+ * The derivation is checked, not trusted: `openExtensionPage` compares it to `chrome.runtime.id`
+ * inside the page, and `extensionId` in the config overrides it if the two ever disagree.
+ */
+export function unpackedExtensionId(absPath) {
+  return createHash('sha256').update(String(absPath)).digest('hex').slice(0, 32)
+    .replace(/[0-9a-f]/g, (c) => String.fromCharCode(97 + Number.parseInt(c, 16)))
+}
+
+/**
+ * Which id should this sweep talk to? An explicit `extensionId` wins; otherwise the id derived
+ * from the install path. A running worker is only CORROBORATION — another extension can also
+ * have a `/sw.js`, so a worker is evidence about state, never about identity.
+ */
+export function resolveExtensionId(targets, { extensionDir, extensionId } = {}) {
+  if (extensionId) return { id: extensionId, via: 'config', awake: Boolean(findWorker(targets, extensionId)) }
+  if (!extensionDir) {
+    const running = extensionIdFrom(targets)
+    return { id: running, via: running ? 'service-worker' : null, awake: Boolean(running) }
+  }
+  let resolved = extensionDir
+  try { resolved = realpathSync(extensionDir) } catch { /* not on this machine; hash the configured path */ }
+  const id = unpackedExtensionId(resolved)
+  return { id, via: 'path', path: resolved, awake: Boolean(findWorker(targets, id)) }
+}
+
+function findWorker(targets, id) {
+  return (targets ?? []).find((t) => t.type === 'service_worker'
+    && String(t.url).startsWith(`chrome-extension://${id}/`))
+}
+
 /** Send one message to sw.js from an extension page and return its reply. */
 function sendMessage(cdp, sessionId, type, payload, timeoutMs) {
   const expr = `chrome.runtime.sendMessage(${JSON.stringify({ type, payload })})`
@@ -160,16 +256,20 @@ async function sweepTarget(cdp, extId, target, cfg) {
   //    open for days is exactly the one Chrome's memory saver discards, and a discarded tab
   //    keeps its title and favicon so it looks perfectly healthy right up until the capture
   //    comes back as a login wall.
-  const { targetId: siteTarget } = await cdp.send('Target.createTarget', { url: target.url })
-  const site = await cdp.attach(siteTarget)
+  // 2. …and its load event, with a deadline of its own. See `openPage` for why the tab is born
+  //    blank and navigated afterwards.
+  let siteTarget
+  let site
+  try {
+    ({ targetId: siteTarget, sessionId: site } = await openPage(cdp, target.url, cfg.pageLoadTimeoutMs))
+  } catch (err) {
+    out.reason = 'error'
+    out.detail = err?.message ?? String(err)
+    out.ms = Date.now() - started
+    return out
+  }
 
   try {
-    await cdp.send('Page.enable', {}, { sessionId: site })
-    await cdp.send('Runtime.enable', {}, { sessionId: site })
-
-    // 2. Wait for the load event, with a deadline of its own.
-    await waitForLoad(cdp, site, cfg.pageLoadTimeoutMs)
-
     // 3. THE ACTIVE TAB. Both calls: activateTarget selects the tab in its window,
     //    bringToFront raises the window. Without a window manager the second is a no-op, which
     //    is one reason the bootstrap installs openbox.
@@ -190,12 +290,9 @@ async function sweepTarget(cdp, extId, target, cfg) {
     // 5. Does the extension still hold the host permission? It cannot be re-granted from here —
     //    `permissions.request()` needs a real user gesture and CDP cannot supply one — so this
     //    is a check that ends the sweep, not one that triggers a fix.
-    const extPage = await cdp.send('Target.createTarget', {
-      url: `chrome-extension://${extId}/ui/collection.html`,
-    })
-    const page = await cdp.attach(extPage.targetId)
+    const extPage = await openExtensionPage(cdp, extId, cfg.pageLoadTimeoutMs)
+    const page = extPage.sessionId
     try {
-      await cdp.send('Runtime.enable', {}, { sessionId: page })
       // Creating that tab stole focus. Give it back before anything scrolls.
       await cdp.send('Target.activateTarget', { targetId: siteTarget })
 
@@ -288,6 +385,7 @@ async function sweepTarget(cdp, extId, target, cfg) {
 function waitForLoad(cdp, sessionId, timeoutMs) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => { off(); reject(new Error(`page load timed out after ${timeoutMs}ms`)) }, timeoutMs)
+    timer.unref?.()
     const off = cdp.on('Page.loadEventFired', (_p, sid) => {
       if (sid && sid !== sessionId) return
       clearTimeout(timer)
@@ -295,6 +393,64 @@ function waitForLoad(cdp, sessionId, timeoutMs) {
       resolve()
     })
   })
+}
+
+/**
+ * Open a tab at `url` and resolve once its load event has fired.
+ *
+ * The tab is created at about:blank and navigated only AFTER the session exists, Page.enable has
+ * run and the listener is in place. Creating it directly at the URL — the first version — races:
+ * navigation starts before there is a session to report it, a fast or cached load fires its load
+ * event before Page.enable, and the wait then times out on a page that loaded perfectly well. The
+ * same race made the very next Runtime.evaluate land in the initial about:blank document, where
+ * `chrome.runtime` does not exist.
+ */
+export async function openPage(cdp, url, timeoutMs) {
+  const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' })
+  try {
+    const sessionId = await cdp.attach(targetId)
+    await cdp.send('Page.enable', {}, { sessionId })
+    await cdp.send('Runtime.enable', {}, { sessionId })
+    const loaded = waitForLoad(cdp, sessionId, timeoutMs)
+    // Handled now, awaited below: if navigate throws first, a load timeout firing later must not
+    // become an unhandled rejection, which Node turns into a crash.
+    loaded.catch(() => {})
+    const nav = await cdp.send('Page.navigate', { url }, { sessionId })
+    if (nav?.errorText) throw new Error(`navigating to ${url} failed: ${nav.errorText}`)
+    await loaded
+    return { targetId, sessionId }
+  } catch (err) {
+    await cdp.send('Target.closeTarget', { targetId }).catch(() => {})
+    throw err
+  }
+}
+
+/**
+ * Open the extension's own page and PROVE it is the extension we think it is.
+ *
+ * Loading a chrome-extension:// page is also what wakes a sleeping service worker: the worker is
+ * started on demand by the first message sent to it. `chrome.runtime.id` inside the page is the
+ * ground truth for the derived id; a mismatch, or no `chrome.runtime` at all, means the
+ * extension is not loaded from where the config says it is.
+ */
+export async function openExtensionPage(cdp, extId, timeoutMs) {
+  const url = `chrome-extension://${extId}/ui/collection.html`
+  let opened
+  try {
+    opened = await openPage(cdp, url, timeoutMs)
+  } catch (err) {
+    throw new Error(`the Stashling extension is not loaded as ${extId} (${err?.message ?? err}). `
+      + 'Open chrome://extensions over VNC: is it loaded unpacked from the configured extensionDir, '
+      + 'and is Developer mode still ON? If its id differs, set "extensionId" in the config.')
+  }
+  const seen = await evaluate(cdp, opened.sessionId, 'globalThis.chrome?.runtime?.id ?? null',
+    { awaitPromise: false, timeoutMs: 10_000 }).catch(() => null)
+  if (seen !== extId) {
+    await cdp.send('Target.closeTarget', { targetId: opened.targetId }).catch(() => {})
+    throw new Error(`expected extension ${extId}, but the page reports ${seen ?? 'no extension at all'}. `
+      + 'Set "extensionId" in the config to the id shown on chrome://extensions.')
+  }
+  return opened
 }
 
 // ── the sweep ───────────────────────────────────────────────────────────────────────────────
@@ -312,14 +468,13 @@ export async function sweep(cfg) {
 
   const cdp = await new Cdp(found.wsUrl).open()
   try {
-    const extId = extensionIdFrom(await cdp.targets())
-    if (!extId) {
-      throw new Error(
-        'the Stashling service worker is not running. Open chrome://extensions in the VNC '
-        + 'session and check the extension is loaded and enabled.',
-      )
+    const ext = resolveExtensionId(await cdp.targets(), cfg)
+    if (!ext.id) {
+      throw new Error('cannot determine the extension id: set "extensionDir" (or "extensionId") in the config')
     }
-    log(`extension: ${extId}`)
+    const extId = ext.id
+    // "asleep" is the normal state between sweeps, not a fault — opening its page wakes it.
+    log(`extension: ${extId} (from ${ext.via}; worker ${ext.awake ? 'awake' : 'asleep'})`)
 
     const results = []
     for (const [i, target] of cfg.targets.entries()) {
@@ -352,14 +507,10 @@ export async function exportAll(cfg, outFile) {
   if (!found.ok) throw new Error(`no DevTools endpoint (${found.reason})`)
   const cdp = await new Cdp(found.wsUrl).open()
   try {
-    const extId = extensionIdFrom(await cdp.targets())
-    if (!extId) throw new Error('the Stashling service worker is not running')
-    const { targetId } = await cdp.send('Target.createTarget', {
-      url: `chrome-extension://${extId}/ui/collection.html`,
-    })
-    const page = await cdp.attach(targetId)
+    const { id: extId } = resolveExtensionId(await cdp.targets(), cfg)
+    if (!extId) throw new Error('cannot determine the extension id: set "extensionDir" or "extensionId"')
+    const { targetId, sessionId: page } = await openExtensionPage(cdp, extId, cfg.pageLoadTimeoutMs)
     try {
-      await cdp.send('Runtime.enable', {}, { sessionId: page })
       const res = await sendMessage(cdp, page, 'exportAll', {}, 5 * 60_000)
       if (!res?.ok) throw new Error(`export failed: ${res?.error ?? 'no reply'}`)
       mkdirSync(path.dirname(outFile), { recursive: true })
@@ -368,6 +519,27 @@ export async function exportAll(cfg, outFile) {
     } finally {
       await cdp.send('Target.closeTarget', { targetId }).catch(() => {})
     }
+  } finally {
+    cdp.close()
+  }
+}
+
+/**
+ * Prove the extension is reachable the same way a sweep reaches it, without sweeping anything.
+ * doctor.sh calls this rather than looking for a running worker, which is asleep most of the time.
+ */
+export async function checkExtension(cfg) {
+  const found = await discover(cfg.profileDir, { timeoutMs: 15_000 })
+  if (!found.ok) return { ok: false, reason: `no DevTools endpoint (${found.reason})` }
+  const cdp = await new Cdp(found.wsUrl).open()
+  try {
+    const ext = resolveExtensionId(await cdp.targets(), cfg)
+    if (!ext.id) return { ok: false, reason: 'cannot determine the extension id' }
+    const { targetId } = await openExtensionPage(cdp, ext.id, cfg.pageLoadTimeoutMs)
+    await cdp.send('Target.closeTarget', { targetId }).catch(() => {})
+    return { ok: true, id: ext.id, via: ext.via, wasAwake: ext.awake }
+  } catch (err) {
+    return { ok: false, reason: err?.message ?? String(err) }
   } finally {
     cdp.close()
   }
@@ -382,12 +554,13 @@ async function main(argv) {
       config: { type: 'string', short: 'c', default: DEFAULT_CONFIG },
       export: { type: 'string' },
       'dry-run': { type: 'boolean', default: false },
+      'check-extension': { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
     },
   })
 
   if (values.help) {
-    log('usage: collect.mjs [--config /etc/stashling/stashling.json] [--export FILE] [--dry-run]')
+    log('usage: collect.mjs [--config /etc/stashling/stashling.json] [--export FILE] [--dry-run] [--check-extension]')
     return 0
   }
 
@@ -399,7 +572,13 @@ async function main(argv) {
     return found.ok ? 0 : 1
   }
 
-  const lock = takeLock(cfg.stateDir)
+  if (values['check-extension']) {
+    const r = await checkExtension(cfg)
+    log(JSON.stringify(r))
+    return r.ok ? 0 : 1
+  }
+
+  const lock = takeLock(cfg.stateDir, { maxAgeMs: cfg.staleLockMs })
   if (!lock.ok) {
     // Not an error: the previous sweep is still going, which is what the lock is for. Exiting 0
     // keeps the unit green so a long run does not look like a broken one.
@@ -433,7 +612,24 @@ async function main(argv) {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/**
+ * Run `main` only when executed directly, never when imported (doctor.sh and the tests import).
+ *
+ * Compared as resolved filesystem paths. The previous string comparison against
+ * `file://${argv[1]}` breaks on any path that URL-encodes (a space) and on any symlinked install,
+ * and in both cases it fails SILENTLY: main never runs, the process exits 0, and the unit is green
+ * having done nothing at all.
+ */
+function invokedDirectly() {
+  try {
+    return Boolean(process.argv[1])
+      && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
+  } catch {
+    return false
+  }
+}
+
+if (invokedDirectly()) {
   process.exitCode = await main(process.argv.slice(2)).catch((err) => {
     warn(`stashling-collect: ${err?.message ?? err}`)
     return 2
