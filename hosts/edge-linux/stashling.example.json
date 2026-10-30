@@ -1,0 +1,83 @@
+{
+  "_readme": [
+    "Copied to /etc/stashling/stashling.json by bootstrap.sh. Edit that copy, not this one.",
+    "",
+    "minRows is the most important field here and the only one you cannot guess. It is the",
+    "number below which a capture is treated as TRUNCATED rather than complete. It exists",
+    "because the characteristic failure of this whole design is silent: if the collection tab",
+    "is not the visible, active tab, a virtualized list materialises only its first screenful,",
+    "the row count stops growing, and the capture reports settled:true having collected maybe",
+    "7% of your list. Nothing errors. It merges cleanly into the store and looks like a quiet",
+    "day. So: run one sweep by hand, see how many rows it reports, and set minRows a little",
+    "under that. Re-check it when your list grows.",
+    "",
+    "There is no entry URL in the connector itself. A connector declares match(url) and",
+    "instanceId(url) -- predicates that RECOGNISE a list page -- and nothing that says where",
+    "the page lives, because until now a human was always already on it. Hence this file.",
+    "MakerWorld URLs contain your own handle, so they could not be hard-coded anyway."
+  ],
+
+  "profileDir": "__PROFILE__",
+  "stateDir": "__STATE__",
+
+  "_extension": [
+    "Where the unpacked extension is loaded from. Chrome derives an unpacked extension's id from",
+    "this path, which is how a sweep finds the extension while its service worker is ASLEEP --",
+    "and between sweeps it always is. If chrome://extensions shows a different id, put that id in",
+    "extensionId and the derivation is skipped."
+  ],
+  "extensionDir": "__EXTENSION__",
+  "extensionId": null,
+
+  "targets": [
+    {
+      "name": "youtube-watch-later",
+      "url": "https://www.youtube.com/playlist?list=WL",
+      "minRows": 1
+    },
+    {
+      "name": "youtube-liked",
+      "url": "https://www.youtube.com/playlist?list=LL",
+      "minRows": 1
+    },
+    {
+      "_disabled_until": "you replace YOUR-HANDLE below, then move this out of _readme order",
+      "name": "makerworld-likes",
+      "url": "https://makerworld.com/en/@YOUR-HANDLE/likes",
+      "minRows": 1
+    }
+  ],
+
+  "_politeness": [
+    "A randomised gap between targets. The capture already randomises its own scroll intervals",
+    "because a metronome is the most legible bot signature there is; a perfectly regular sweep",
+    "undoes that at the next level up. The systemd timer adds a third layer of jitter.",
+    "",
+    "Two values, milliseconds: the minimum and maximum wait."
+  ],
+  "betweenTargetsMs": [20000, 90000],
+
+  "_timeouts": [
+    "collectTimeoutMs must stay under the MV3 service worker's five-minute-per-request ceiling",
+    "plus the time to parse and store. Beyond that Chrome kills the handler mid-run and tells",
+    "the caller nothing. YouTube's connector scrolls for at most 120s (autoScroll.maxMs), so",
+    "eight minutes is generous; if you raise maxMs, re-check this."
+  ],
+  "pageLoadTimeoutMs": 60000,
+  "collectTimeoutMs": 480000,
+
+  "_blocked": [
+    "If the final URL after redirects matches any of these, the sweep stops for that target and",
+    "reports needs-human instead of collecting a login wall. These are regexes, case-insensitive.",
+    "Leave the defaults unless a platform moves its sign-in path."
+  ],
+  "blockedUrlPatterns": [
+    "accounts\\.google\\.com",
+    "consent\\.(youtube|google)\\.",
+    "/sorry/",
+    "/signin\\b",
+    "/login\\b",
+    "/challenge\\b",
+    "/captcha\\b"
+  ]
+}

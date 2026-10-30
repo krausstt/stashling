@@ -18,9 +18,10 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { validateConfig } from '../driver/collect.mjs'
+import {
+  validateConfig, loadConfig, extensionIdFrom, unpackedExtensionId, resolveExtensionId, lockIsStale,
+} from '../driver/collect.mjs'
 import { readActivePort } from '../driver/cdp.mjs'
-import { extensionIdFrom } from '../driver/collect.mjs'
 
 const okTarget = { name: 'wl', url: 'https://www.youtube.com/playlist?list=WL', minRows: 20 }
 const okConfig = { profileDir: '/var/lib/stashling/chrome-profile', targets: [okTarget] }
@@ -92,9 +93,101 @@ test('extensionIdFrom does not mistake an extension PAGE for the worker', () => 
   assert.equal(extensionIdFrom(targets), null)
 })
 
-test('extensionIdFrom returns null when the extension is not loaded', () => {
+test('extensionIdFrom returns null when no worker target exists — which includes an asleep worker', () => {
   assert.equal(extensionIdFrom([{ type: 'page', url: 'https://example.com/' }]), null)
   assert.equal(extensionIdFrom([]), null)
+})
+
+// ── the extension id, when the worker is asleep ─────────────────────────────────────────────
+
+test('unpackedExtensionId maps SHA-256 hex digits 0-f onto a-p', () => {
+  // SHA-256("abc") = ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad, a standard
+  // published vector. The first 32 hex digits, mapped by hand (0->a … f->p), pin the mapping
+  // against something this code did not produce.
+  assert.equal(unpackedExtensionId('abc'), 'lkhibglpipabmpokebebeanofnkocccd')
+  const id = unpackedExtensionId('/opt/stashling/extension')
+  assert.match(id, /^[a-p]{32}$/)
+  assert.equal(id, unpackedExtensionId('/opt/stashling/extension'), 'deterministic')
+  assert.notEqual(id, unpackedExtensionId('/opt/stashling/extension2'), 'path-specific')
+})
+
+test('resolveExtensionId does not need a running worker — that is the bug it fixes', () => {
+  // Between sweeps the MV3 worker is asleep and has NO DevTools target. The old driver read the
+  // id only from that target, so most half-hourly sweeps would have failed "not running".
+  const ext = resolveExtensionId([], { extensionDir: '/opt/stashling/extension' })
+  assert.equal(ext.id, unpackedExtensionId('/opt/stashling/extension'))
+  assert.equal(ext.via, 'path')
+  assert.equal(ext.awake, false, 'asleep is reported, not treated as missing')
+})
+
+test('resolveExtensionId reports the worker awake when its target is ours', () => {
+  const id = unpackedExtensionId('/opt/stashling/extension')
+  const ext = resolveExtensionId(
+    [{ type: 'service_worker', url: `chrome-extension://${id}/sw.js` }],
+    { extensionDir: '/opt/stashling/extension' },
+  )
+  assert.equal(ext.awake, true)
+})
+
+test('resolveExtensionId never adopts ANOTHER extension that happens to have a /sw.js', () => {
+  // The old heuristic matched any worker ending in /sw.js — a password manager would do.
+  const other = 'ponmlkjihgfedcbaponmlkjihgfedcba'
+  const ext = resolveExtensionId(
+    [{ type: 'service_worker', url: `chrome-extension://${other}/sw.js` }],
+    { extensionDir: '/opt/stashling/extension' },
+  )
+  assert.notEqual(ext.id, other)
+  assert.equal(ext.awake, false)
+})
+
+test('an explicit extensionId wins over derivation', () => {
+  const ext = resolveExtensionId([], { extensionDir: '/x', extensionId: 'abcdefghijklmnopabcdefghijklmnop' })
+  assert.equal(ext.id, 'abcdefghijklmnopabcdefghijklmnop')
+  assert.equal(ext.via, 'config')
+})
+
+test('loadConfig defaults extensionDir to where bootstrap.sh installs the extension', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'stashling-'))
+  try {
+    const file = path.join(dir, 'c.json')
+    writeFileSync(file, JSON.stringify(okConfig))
+    const cfg = loadConfig(file)
+    assert.equal(cfg.extensionDir, '/opt/stashling/extension')
+    assert.ok(cfg.staleLockMs > 20 * 60_000, 'must outlast the unit TimeoutStartSec of 20 min')
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+// ── the lock that must never outlive its sweep ──────────────────────────────────────────────
+
+const NOW = Date.parse('2026-10-30T12:00:00Z')
+const lockText = (pid, ago) => `pid=${pid} started=${new Date(NOW - ago).toISOString()}`
+
+test('a lock held by a live, recent sweep is respected', () => {
+  const v = lockIsStale(lockText(4242, 60_000), { now: NOW, isAlive: () => true })
+  assert.equal(v.stale, false)
+})
+
+test('a lock whose process is gone is stale — systemd killed it and finally never ran', () => {
+  // The failure this prevents: one hung sweep killed at TimeoutStartSec leaves the lock behind
+  // (across reboots, it lives in /var/lib), and every later tick exits 0 "already running".
+  const v = lockIsStale(lockText(4242, 60_000), { now: NOW, isAlive: () => false })
+  assert.equal(v.stale, true)
+  assert.match(v.why, /not running/)
+})
+
+test('a lock older than any sweep could run is stale even if the pid is alive', () => {
+  // After a reboot the recorded pid may belong to an unrelated process.
+  const v = lockIsStale(lockText(1, 3 * 60 * 60_000), { now: NOW, isAlive: () => true })
+  assert.equal(v.stale, true)
+  assert.match(v.why, /older than/)
+})
+
+test('an unparseable lock is stale', () => {
+  for (const junk of ['', 'garbage', 'pid=abc started=x', 'pid=12', 'started=2026-01-01T00:00:00Z']) {
+    assert.equal(lockIsStale(junk, { now: NOW, isAlive: () => true }).stale, true, `"${junk}"`)
+  }
 })
 
 test('readActivePort reads the port from the first line', () => {
