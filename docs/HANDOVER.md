@@ -1,4 +1,4 @@
-# Handover — 2026-10-27
+# Handover — updated 2026-10-30
 
 For the next coding agent. Read this, then [`WORKLOG.md`](./WORKLOG.md), then start.
 
@@ -9,50 +9,60 @@ the command that re-checks it. Run §2 before you trust §1.
 
 ## 1. State at the time of writing
 
-### The repository is ahead of GitHub, and has uncommitted work in it
+### `main` is in sync with GitHub; the edge-linux work waits in PR #2
 
 | | |
 |---|---|
-| Local `main` | `77496e9` |
-| `origin/main` on GitHub | `ed47598` — last pushed **2026-09-07** |
-| Unpushed commits | **5**: `6ea0b68` `7fd65e7` `b0639a3` `d666754` `77496e9` — all reviewed, all green |
-| Staged, **not committed** | `hosts/edge-linux/{bootstrap,doctor,upgrade-chrome}.sh`, `stashling.example.json`, and a CI change that lints them |
-| Tests | **197 pass, 0 fail** (`node --test`) — 14 of those are `hosts/edge-linux/test/` |
-| Checks | vendor sync OK · extension check OK · fixtures 4 verified, 0 mismatched |
+| `main` | `e1f1cec`, equal to `origin/main`, CI green on Node 20.x and 22.x |
+| Open PR | **[#2](https://github.com/krausstt/stashling/pull/2)** `edge-linux-provisioning` — CI green on both Node versions, **including the first-ever `shellcheck` run**; mergeable. **Waiting for the owner to merge** (an automated merge was refused as "merge without review", correctly) |
+| Tests | **197** on `main`; **207** with PR #2 (driver tests 14 → 24) |
+| ADR-0007 | **accepted** by the owner, 2026-10-30 — phase 2 is done |
 
-**Do not `git add -A && git commit` on arrival.** The staged scripts are someone's unfinished
-work, not a mess to tidy. See §3, item 1.
+**Until PR #2 is merged, `main` does not contain the provisioning scripts, `GUIDE.md`, or the
+three driver fixes below.** Anyone installing a box from `main` before then gets a driver that
+fails most sweeps. Merge first, or clone the branch.
 
-### What the staged work is
+### `hosts/edge-linux/` — what it is and how far it is proven
 
-`hosts/edge-linux/` turns an always-on Ubuntu 24.04 mini PC into an edge collector: one Chrome
-instance on a shared VNC display, logged in **by hand** once, driven over CDP by a systemd timer.
-The driver half (`driver/cdp.mjs`, `driver/collect.mjs`, 14 tests) is committed in `77496e9`. The
-provisioning half — the three shell scripts — is staged only.
+It turns an always-on Ubuntu 24.04 mini PC into an edge collector: one Chrome on a virtual VNC
+display, logged in **by hand** once, driven over CDP by a systemd timer, with a nightly export.
+Written for the owner's **Lenovo M720q**. Start at [`hosts/edge-linux/GUIDE.md`](../hosts/edge-linux/GUIDE.md).
 
-What is verified about the scripts, and what is not:
+Reviewing it line by line (2026-10-30) found three defects in the driver, all fixed in PR #2,
+each a failure that would have looked like success or like a quiet day:
+
+1. **A sleeping service worker read as "extension not loaded."** An MV3 worker dies after ~30 s
+   idle, so between half-hourly sweeps it has no DevTools target — the only place the driver
+   looked. Now the id is derived from the install path and verified against `chrome.runtime.id`.
+2. **A killed sweep left its lock forever**, and every later tick exited 0 "already running".
+   Stale locks are now reclaimed.
+3. **A load-event race** could time out pages that loaded fine.
 
 | Check | Result |
 |---|---|
-| `bash -n` on all three | passes |
-| Executable bit in the git index | set (`100755`) on all three |
-| Line endings in the index | LF on all three (`git ls-files --eol`) |
-| `stashling.example.json` | valid JSON |
-| `shellcheck` | **never run** — not installed on the dev machine; the staged CI step would be its first run |
-| Run on real Ubuntu hardware | **no evidence it ever has been.** Treat as unverified |
+| `shellcheck --severity=warning` | **clean** (CI, PR #2) |
+| `bash -n` | passes — under real Linux bash (WSL), not only CI |
+| Exec bit / LF in the git index | `100755` / LF on all three scripts |
+| Generated systemd lines | rendered and checked; literal `$` uses systemd's `$$` |
+| Download URLs it depends on | Node 22.23.4 tarball + checksums, Chrome amd64 `.deb`: all live, checked 2026-10-30 |
+| **Run end to end on real hardware** | **never.** The owner's first install on the M720q is that test |
 
-They run as root on a machine holding live, logged-in session cookies. That is why they deserve
-more scrutiny than their line count suggests, and why the staged CI change adds `shellcheck`.
+Unverified by anything here, and worth knowing: the extension-id derivation follows Chromium's
+documented unpacked-id scheme and is unit-tested against a SHA-256 vector, but its agreement
+with a real Chrome is checked only at runtime — by `collect.mjs --check-extension`, which
+`doctor.sh` calls. If they ever disagree, `extensionId` in the config overrides it. Several
+Chrome-version claims in the script comments (e.g. the release cadence "since Chrome 153") are
+the original author's and were not re-verified.
 
 ### The second repository: `krausstt/actually-watch-later`
 
-Private, one commit (`761c284`), local at `C:\Users\TobiasKrauss\ClaudeCode\actually-watch-later`.
+Private, local at `C:\Users\TobiasKrauss\ClaudeCode\actually-watch-later`. Its README now carries
+a banner saying it is being folded into Stashling (`0ba0d09`, pushed).
 
 **Do not develop it.** It was diffed against this repo's YouTube connector across all 14 shared
 row fields on all 20 fixture rows: **zero differences** — it is the same parser, not a second
 one. The agreed direction is to fold its remaining advantages into Stashling and then archive it
-(WORKLOG, "YouTube"). Its README still says the next increment is "helping you decide what to
-watch"; that plan is superseded.
+(WORKLOG, "YouTube"). Its old plan — "helping you decide what to watch" — is superseded.
 
 Already folded in: the depth-counting chunker and the digit-anchored number parse (`b0639a3`).
 Still to fold — see §3, item 3.
@@ -69,8 +79,9 @@ From the repository root. Everything here installs nothing.
 ```bash
 git fetch origin && git status -sb          # ahead by N? anything staged?
 git log --oneline origin/main..main         # the unpushed commits
+gh pr list                                  # is PR #2 still open?
 npm run check                               # everything below in one go — what CI runs
-node --test                                 # expect 197 pass
+node --test                                 # expect 197 on main, 207 once PR #2 is merged
 node scripts/sync-extension.mjs --check     # vendored copies match packages/
 node scripts/check-extension.mjs            # manifest, imports, permissions, facet coverage
 node scripts/fixtures.mjs                   # fixture checksums
@@ -83,18 +94,17 @@ If any number differs from §1, §1 is stale — trust the command, then fix thi
 
 ## 3. What to do next, in order
 
-### 1 · Resolve the staged edge-linux scripts — ask the user first
+### 1 · PR #2 gets merged — by the owner
 
-They are not yours, and they were left mid-flight. Ask whether they are finished. If yes:
-commit them **with** the staged CI change (they belong together — the CI step is how they get
-linted, since there is no `shellcheck` on Windows), push to a **branch**, and let CI run
-`shellcheck` before anything reaches `main`. If it flags warnings, fix them; do not lower
-`--severity`.
+Green and mergeable. Do not merge it yourself; ask. Until it lands, see the warning in §1.
 
-### 2 · Push the 5 local commits — ask the user first
+### 2 · The first real install on the M720q — with the owner
 
-They are reviewed and green, but pushing is outward-facing and was not done. Push them before
-or with item 1, so `main` on GitHub stops being two months behind.
+Nothing in `hosts/edge-linux/` has run on hardware. Walk [`GUIDE.md`](../hosts/edge-linux/GUIDE.md)
+with the owner and treat every `doctor.sh` FAIL or WARN as a finding: fix the script or the guide,
+not just the box. The things most likely to surface first: the Chrome sandbox under Ubuntu
+24.04's AppArmor user-namespace restriction (doctor reports it; **never** answer it with
+`--no-sandbox`), and whether `--check-extension` agrees with the id `chrome://extensions` shows.
 
 ### 3 · Phase 3: finish folding `actually-watch-later` in, then archive it
 
@@ -123,16 +133,17 @@ user — they are product decisions, not implementation details.
 
 ### 5 · Small, safe, worth doing alongside
 
-Stale claims (all say an old test count; the real number is 197):
-`README.md` line ~30 (`74 tests`), `BLOG.md` line ~259 (`151 tests`), `CONTRIBUTING.md` line ~20
-(`151 tests`), `WORKLOG.md` phase-0 row (`168 tests`). `VERSIONS.md` "last verified" dates are
-2026-09-07 — move them only after actually re-running the suite.
+Stale claims (all give an old test count): `README.md` line ~30 (`74 tests`), `BLOG.md` line
+~259 (`151 tests`), `CONTRIBUTING.md` line ~20 (`151 tests`), `WORKLOG.md` phase-0 row
+(`168 tests`). `VERSIONS.md` "last verified" dates are 2026-09-07 — move them only after actually
+re-running the suite.
 
-`hosts/edge-linux/` has **no documentation outside its own file headers.** It needs a README
-covering: what the box is for, the one-time manual login over an SSH-tunnelled VNC, that the
-extension's host permission must also be granted by hand (CDP cannot fake a user gesture), and
-how to set `minRows`. The headers of `bootstrap.sh`, `collect.mjs` and `stashling.example.json`
-already contain all of that — collect it, do not invent it.
+CI maintenance, from the annotations on PR #2's run:
+- `actions/checkout@v4` and `actions/setup-node@v4` target Node 20, which GitHub has deprecated
+  on runners; move to the current major of each.
+- `ubuntu-latest` began migrating to Ubuntu 26 on 2026-10-19. The edge box runs **24.04**, so
+  consider pinning `runs-on: ubuntu-24.04` — then the shell scripts are linted on the same
+  release they run on.
 
 ---
 
@@ -147,10 +158,7 @@ already contain all of that — collect it, do not invent it.
 | The rendered DOM is primary; embedded JSON is opt-in | ADR-0004 |
 | Host permissions are optional, requested inside a click | ADR-0005 |
 | Zero dependencies, no build step | ADR-0006 |
-| The core is never a container; an optional hub may be; the edge is the only acquirer | ADR-0007 |
-
-**ADR-0007 is marked `proposed` in its file**, while other notes describe it as decided. The
-file is the authority. Getting the user to accept it formally closes phase 2.
+| The core is never a container; an optional hub may be; the edge is the only acquirer | ADR-0007 — accepted 2026-10-30 |
 
 ---
 
@@ -213,7 +221,8 @@ file is the authority. Getting the user to accept it formally closes phase 2.
 | Real YouTube capture | `actually-watch-later\eval_assets\` (gitignored, local only) |
 | Source tools being unified | `krausstt/makerworld-suite`, `krausstt/grosse-kleinanzeigen`, `krausstt/openbrowsertabs` |
 
-*Written by a coding agent from the repository state on 2026-10-27; every number in §1 was
-measured that day with the commands in §2. Sources: `git log`, `git status`, `git ls-files`,
-`node --test`, the three `scripts/` checks, `docs/WORKLOG.md`, `docs/decisions/0007-*.md`, and
-the file headers in `hosts/edge-linux/`.*
+*Written by a coding agent on 2026-10-27, updated 2026-10-30; every number in §1 was measured on
+the day it was written, with the commands in §2. Sources: `git log`, `git status`, `git ls-files`,
+`node --test`, the three `scripts/` checks, GitHub Actions run 41078970344 (PR #2) and the latest
+`main` run, `gh pr view 2`, HEAD requests to nodejs.org and dl.google.com, `docs/WORKLOG.md`,
+`docs/decisions/0007-*.md`, and a line-by-line read of everything in `hosts/edge-linux/`.*
